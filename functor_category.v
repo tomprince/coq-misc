@@ -6,7 +6,7 @@ Require Import Setoid.
 (* Eelis *)
 Require Import abstract_algebra functors categories.
 (* me *)
-(*Require Import nattrans.*)
+Require Import natural_transformation.
 
 Hint Extern 4 => reflexivity.
 Set Automatic Introduction.
@@ -30,7 +30,7 @@ Record Arrow (F G : Object) : Type := arrow {
 }.
 Implicit Arguments arrow [[F] [G]].
 Global Existing Instance NaturalTransformation_inst.
-Hint Extern 4 (Arrows Object) => exact Arrow: typeclass_instances.
+Global Instance: Arrows Object := Arrow.
 
 Section contents.
   Section more_arrows. Context (F G: Object).
@@ -64,7 +64,7 @@ Section contents.
 
 (*    Global Instance: forall (a: F ⟶ G), Setoid_Morphism (eta a).*)
   End more_arrows.
-
+ 
   Global Instance: CatId Object := fun _ => arrow (fun _ => cat_id ) _.
   Global Instance: CatComp Object := fun _ _ _ m n => arrow (fun a => (m a) ◎ (n a)) _.
 
@@ -111,3 +111,4 @@ End contents.
 End FunCat.
 
 Implicit Arguments Object [[Arrows0] [H] [CatId0] [CatComp0] [Arrows1] [H1] [CatId1] [CatComp1]].
+Implicit Arguments CatComp_instance_0 [[A] [Arrows0] [CatId0] [CatComp0] [B] [Arrows1] [H1] [CatId1] [CatComp1] [H2]].
