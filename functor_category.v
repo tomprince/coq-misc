@@ -6,7 +6,7 @@ Require Import Setoid.
 (* Eelis *)
 Require Import abstract_algebra functors categories.
 (* me *)
-(*Require Import nattrans.*)
+Require Import natural_transformation.
 
 Hint Extern 4 => reflexivity.
 Set Automatic Introduction.
