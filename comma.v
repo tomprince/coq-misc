@@ -30,6 +30,7 @@ Implicit Arguments Lmap [[x] [y]].
 Implicit Arguments Rmap [[x] [y]].
 Implicit Arguments arrow [[x] [y]].
 
+Global Instance: Arrows Object := Arrow.
 Hint Extern 4 (Arrows Object) => exact Arrow: typeclass_instances.
 
 Section contents.
