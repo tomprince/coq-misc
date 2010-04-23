@@ -43,19 +43,18 @@ Section contents.
       intro a; red; reflexivity.
     Qed.
 
+    Transparent e.
     Let e_sym: Symmetric e.
     Proof.
-      intros m n Hmn.
-      red. red in Hmn. 
-      intro a. rewrite Hmn. 
+      intros m n Hmn a. red in Hmn. hyp_rewrite.
       reflexivity.
     Qed.
 
     Let e_trans: Transitive e.
     Proof.
-      intros m n o Hmn Hno.
-      red. red in Hmn. red in Hno.
-      intro a. rewrite Hmn, Hno.
+      intros m n o Hmn Hno a.
+      red in Hmn. red in Hno.
+      repeat hyp_rewrite. 
       reflexivity.
     Qed.
 
@@ -72,11 +71,11 @@ Section contents.
     ((◎) : (y ⟶ z) -> (x ⟶ y) -> (x ⟶ z)).
   Proof.
     intros.
-    intros x0 x1 Hx.
-    intros y0 y1 Hy.
+    intros ? ? Hx.
+    intros ? ? Hy.
     intros a.
     simpl.
-    rewrite <- (Hx a), <- (Hy a).
+    rewrite (Hx a), (Hy a).
     reflexivity.
   Qed.
 

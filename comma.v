@@ -46,15 +46,14 @@ Section contents.
 
     Let e_sym: Symmetric e.
     Proof.
-      intros f g [Hfg Hfg']; split;
-      [rewrite Hfg | rewrite Hfg']; reflexivity.
+      intros ? ? [? ?]; split;
+      hyp_rewrite; reflexivity.
     Qed.
 
     Let e_trans: Transitive e.
     Proof.
-      intros f g h [Hfg  Hfg'] [Hgh  Hgh'].
-      split;
-        [rewrite Hfg, Hgh | rewrite Hfg', Hgh']; reflexivity.
+      intros ? ? ? [?  ?] [? ?].
+      split; repeat hyp_rewrite; reflexivity.
     Qed.
 
     Instance: Equivalence e.
@@ -82,9 +81,9 @@ Section contents.
     ((◎) : (y ⟶ z) -> (x ⟶ y) -> (x ⟶ z)).
   Proof.
     intros.
-    intros f0 f1 [Hfl Hfr].
-    intros g0 g1 [Hgl Hgr].
-    split; simpl; [rewrite Hfl, Hgl | rewrite Hfr, Hgr]; reflexivity.
+    intros ? ? [? ?].
+    intros ? ? [? ?].
+    split; simpl; repeat hyp_rewrite; reflexivity.
   Qed.
 
   Let id_l' (x y: Object) (f: x ⟶ y): cat_id ◎ f = f.
