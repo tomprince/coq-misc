@@ -1,4 +1,13 @@
 -R new-alg-hierarchy ""
 comma.v
+cone.v
+constant_functor.v
+cross.v
 functor_category.v
+join.v
+limits.v
+modcat.v
+morcat.v
 natural_transformation.v
+square.v
+unit_category.v
