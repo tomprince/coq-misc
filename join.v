@@ -12,7 +12,7 @@ Section Join.
 
 Definition Object : Type := sum L R.
 
-Definition Arrow (x y: Object) := match x, y with
+Definition Arrow (x y: Object) : Type := match x, y with
     | inl l, inl r => l ⟶ r
     | inl l, inr r => unit
     | inr l, inr r => l ⟶ r
@@ -24,96 +24,73 @@ Hint Extern 4 (Arrows Object) => exact Arrow: typclasses_instance.
 
 Section contents.
 Section more_arrows. Context (x y: Object).
-    Global Instance e: Equiv (x ⟶ y).
-    Proof.
-      destruct x; destruct y; intros f g; do 3 red in f, g.
-      - exact (f = g).
-      - exact (eq tt tt).
-      - case f.
-      - exact (f = g).
-    Defined.
-End more_arrows. (* end this, since we need to destruct x & y *)
+    Global Instance e: Equiv (x ⟶ y) := 
+      match x, y with
+        | inl l, inl r => fun f g: l ⟶ r => f = g
+        | inl l, inr r => fun _ _ => True
+        | inr l, inr r => fun f g: l ⟶ r => f = g
+        | inr l, inl r => fun _ _ => True
+      end.
 
-    Let e_refl (x y: Object): Reflexive (e x y).
+    Let e_refl: Reflexive e.
     Proof.
-      intro f. red.
-      destruct x; destruct y; try reflexivity.
-      contradiction.
+      intro f.
+      unfold e.
+      destruct x, y; reflexivity.
     Qed.
 
-    Let e_sym (x y: Object): Symmetric (e x y).
+    Let e_sym: Symmetric e.
     Proof.
-      destruct x, y; intros f g; unfold e.
-      - symmetry; assumption.
-      - intros; assumption.
-      - intros; contradiction.
-      - symmetry; assumption.
+      clear e_refl.
+      unfold e.
+      intros f g.
+      destruct x, y; try symmetry; trivial.
     Qed.
 
-    Let e_trans (x y: Object): Transitive (e x y).
+    Let e_trans: Transitive e.
     Proof.
-      destruct x, y; intros f g h; unfold e; intros Hfg Hgh.
-      - transitivity g; assumption.
-      - apply refl_equal.
-      - contradiction.
-      - transitivity g; assumption.
+      clear e_refl e_sym.
+      intros f g h . unfold e.
+      destruct x, y; try transitivity g; trivial.
     Qed.
-    Instance: forall x y: Object, Equivalence (e x y).
-    intros x y; split; apply _.
-    Defined.
-    Global Instance: forall x y: Object, Setoid (x⟶y).
-      intros x y. red. apply _.
-    Defined.
+    Instance: Equivalence e.
+    Global Instance: Setoid (x⟶y).
+  End more_arrows.
 
     Global Instance: CatId Object.
     Proof.
-      intro x; destruct x; do 3 red; exact cat_id.
+      intro x; destruct x; compute; exact cat_id.
     Defined.
 
     Global Instance: CatComp Object.
-      intros x y z. destruct x, y, z; unfold canonical_names.Arrow, Arrows_instance_0, Arrow; try exact comp; try (intros; apply tt); try contradiction.
+      intros x y z; destruct x, y, z; compute; trivial;
+        try contradiction; apply comp.
     Defined.
+
+    Transparent CatId_instance_0.
+    Transparent CatComp_instance_0.
 
     Let id_l' (x y: Object) (f: x ⟶ y): cat_id ◎ f = f.
     Proof.
-      destruct x, y; unfold comp; unfold CatComp_instance_0;
-      do 3 red in f;
-      unfold comp;
-      unfold Arrow; unfold e; red; unfold cat_id; unfold CatId_instance_0;
-      try apply id_l.
-      apply refl_equal.
-      contradiction.
+      destruct x, y; compute; trivial; apply id_l.
     Qed.
     Let id_r' (x y: Object) (f: x ⟶ y): f ◎ cat_id = f.
     Proof.
-      destruct x, y;
-      unfold comp, CatComp_instance_0, comp;
-      unfold e, Arrow, cat_id, CatId_instance_0;
-      try apply id_r.
-      apply refl_equal.
-      contradiction.
+      destruct x, y; compute; trivial; apply id_r.
     Qed.
 
   Section comp_assoc.
     Context (w x y z: Object) (a: w ⟶ x) (b: x ⟶ y) (c: y ⟶ z).
     Lemma comp_assoc': c ◎ (b ◎ a) = (c ◎ b) ◎ a.
     Proof.
-      destruct w, x, y, z;
-      unfold comp, Arrow, e, CatComp_instance_0;
-      try apply comp_assoc;
-      try apply refl_equal;
-      try contradiction.
+      destruct w, x, y, z; compute; trivial; try contradiction; apply comp_assoc.
     Qed.
   End comp_assoc.
 
   Global Instance: forall x y z: Object, Proper (equiv ==> equiv ==> equiv)
     ((◎) : (y ⟶ z) -> (x ⟶ y) -> (x ⟶ z)).
   Proof.
-    intros x y z; destruct x, y, z;
-    unfold comp, CatComp_instance_0;
-    try (intros ? ? ? ? ? ?; reflexivity);
-    try (intros ? ? ? ? ? ?; contradiction).
-    apply H0. apply H2.
+    intros x y z; destruct x, y, z; compute; trivial; try contradiction; [apply H0 | apply H2].
   Qed.
 
   Global Instance: Category Object := { comp_assoc := comp_assoc'; id_l := id_l'; id_r := id_r'}.
