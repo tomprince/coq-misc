@@ -7,15 +7,21 @@ Require Import Setoid.
 Require Import interfaces.abstract_algebra.
 (* me *)
 
-Section Join.
+Section Cross.
  Context `(Category L) `(Category R).
 
-Definition Object : Type := sum L R.
+Inductive Object := 
+| inl : L -> Object
+| inr : R -> Object
+| cross
+.
 
 Definition Arrow (x y: Object) : Type := match x, y with
     | inl l, inl r => l ⟶ r
     | inr l, inr r => l ⟶ r
-    | inl l, inr r => unit
+    | inl _, _ => unit
+    | _, inr _ => unit
+    | cross, cross => unit
     | _, _ => Empty_set
 end.
 
@@ -58,7 +64,7 @@ Section more_arrows. Context (x y: Object).
 
     Global Instance: CatId Object.
     Proof.
-      intro x; destruct x; compute; exact cat_id.
+      intro x; destruct x; compute; exact cat_id || exact tt.
     Defined.
 
     Global Instance: CatComp Object.
@@ -93,4 +99,4 @@ Section more_arrows. Context (x y: Object).
 
 End contents.
 
-End Join.
+End Cross.
