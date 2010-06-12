@@ -6,6 +6,7 @@ Require Import Setoid.
 (* Eelis *)
 Require Import abstract_algebra.
 (* me *)
+Require Import retract square.
 Require morcat.
 
 Set Implicit Arguments.
@@ -17,20 +18,13 @@ Class MorphismClass (P: ArrowClass) :=
 
 Instance AndArrowClass (P Q: ArrowClass) : ArrowClass := fun {x y: M} (f: x ⟶ y) => P _ _ f /\ Q _ _ f.
 
-Class Lift (L R: ArrowClass) : Type := lift : forall (a b x y:M) (i:a⟶b) (p:x⟶y) `{!morcat.Square i p f g} `(L _ _ i) `(R _ _ p), b ⟶ x.
+Class Lift (L R: ArrowClass) : Type := lift : forall (a b x y:M) (i:a⟶b) (p:x⟶y) `{!Square i p f g} `(L _ _ i) `(R _ _ p), b ⟶ x.
 
 Class Factorization {x y: M} (f: x ⟶ y) := {
   z : M;
   l : x⟶z;
   r : z⟶y;
   comm : r◎l = f
-}.
-
-Class Retract {x y x' y'} (f:x⟶y) (f':x'⟶y') (i:x⟶x') (i':y⟶y') (p:x'⟶x) (p':y'⟶y) : Prop := retract {
-  left: morcat.Square f f' i i';
-  right : morcat.Square f' f p p';
-  top: p◎i = cat_id;
-  bottom: p'◎i' = cat_id
 }.
 
 End test.
@@ -51,31 +45,30 @@ Class WeakFactorizationSystem : Prop := {
   left_factor_proper : forall x y (f g: x⟶y), f = g -> ((f // L) <-> (f // L));
   right_factor_proper : forall x y (f g: x⟶y), f = g -> (f // R <-> f // R);
   factor_classes: forall (x y: C) (f: x ⟶ y), (l f) // L /\ (r f) // R;
-  lift_commute: forall (a b x y:C) (i:a⟶b) (p:x⟶y) f g (Sq : morcat.Square i p f g) (Li: L i) (Rp: R p)  , let h := (lift Sq Li Rp) in h◎i=f /\ g = p◎h;
-  left_retract: forall x y x' y' `(l:x⟶y) (l':x'⟶y') `(!Retract l l' i i' p p'), L l' -> L l;
-  right_retract: forall x y x' y' `(r:x⟶y) (r':x'⟶y') `(!Retract r r' i i' p p'), R r' -> R r 
+  lift_commute: forall (a b x y:C) (i:a⟶b) (p:x⟶y) f g (Sq : Square i p f g) (Li: L i) (Rp: R p)  , let h := (lift Sq Li Rp) in h◎i=f /\ g = p◎h;
+  left_retract: forall x y x' y' `(l:x⟶y) (l':x'⟶y') `(!Retract i i' p p' l' l), L l' -> L l;
+  right_retract: forall x y x' y' `(r:x⟶y) (r':x'⟶y') `(!Retract i i' p p' r' r), R r' -> R r 
 }.
 
 Section Lemmas.
 Context `{WeakFactorizationSystem}.
 
-Lemma lem `(i:a⟶b) (Hyp:forall `(p:x⟶y) `(!morcat.Square i p f g), R p -> {h | (h◎i = f /\ p◎h = g)}): L i.
+Lemma lem `(i:a⟶b) (Hyp:forall `(p:x⟶y) `(!Square i p f g), R p -> {h | (h◎i = f /\ p◎h = g)}): L i.
 Proof.
-pose (f := l i).
-pose (p := r i).
-assert (sq : morcat.Square i (r i) (l i) cat_id).
-  red; rewrite id_l; rewrite comm; reflexivity.
 assert (R (r i)). apply factor_classes.
-pose (h:=Hyp _ _ _ _ _ sq H2).
-destruct h; destruct a0.
+assert (sq : Square i (r i) (l i) cat_id).
+  red; rewrite id_l; rewrite comm; reflexivity.
+pose (h:=Hyp _  _ _ _ _ sq H2).
+destruct h. destruct a0.
 eapply left_retract.
 split.
-apply (@morcat.square _ _ _ _ _ _ _ _ i (l i) cat_id x).
-red. rewrite id_r. apply H3.
-apply (@morcat.square _ _ _ _ _ _ _ _ (l i) i cat_id (r i)).
-red. rewrite id_r. apply comm. apply id_l.
-apply H4.
-apply factor_classes.
+- apply id_l.
+- apply H4.
+- apply (@square _ _ _ _ _ _ _ _ i (l i) cat_id ).
+  red. rewrite id_r. apply H3.
+- apply (@square _ _ _ _ _ _ _ _ (l i) i cat_id (r i)).
+  red. rewrite id_r. rewrite comm. reflexivity.
+- apply factor_classes.
 Qed.
 End Lemmas.
 
