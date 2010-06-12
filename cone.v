@@ -4,10 +4,10 @@ Require Import Equivalence.
 Require Import Setoid.
 
 (* Eelis *)
-Require Import interfaces.abstract_algebra functors.
+Require Import abstract_algebra functors.
 (* me *)
 
-Section Cross.
+Section Cone.
 Context `(Category J) `(Category C) `{!Functor (X:J->C) X'}.
 
 Class Cone (c:C) (f:forall j:J, c ⟶ X j) := cone :
@@ -26,7 +26,9 @@ Record Arrow (x y: Object) : Type := arrow {
   mor :> vertex x ⟶ vertex y;
   cone_mor_inst :> ConeMorphisms (cone_inst x) (cone_inst y) mor
 }.
+Implicit Arguments arrow [[x] [y]].
 Implicit Arguments mor [[x] [y]].
+Implicit Arguments cone_mor_inst [[x] [y][a]].
 
 Global Instance: Arrows Object := Arrow.
 Hint Extern 4 (Arrows Object) => exact Arrow: typclasses_instance.
@@ -51,42 +53,50 @@ Section more_arrows. Context (x y: Object).
     Global Instance: Setoid (x⟶y).
   End more_arrows.
 
-    Global Instance: CatId Object.
-    Proof.
-      intros x.
-      intro x; destruct x; compute; exact cat_id || exact tt.
-    Defined.
+    Global Program Instance: CatId Object := fun x => arrow cat_id _.
+    Next Obligation.
+      intros ?; apply id_r.
+    Qed.
 
-    Global Instance: CatComp Object.
-      intros x y z; destruct x, y, z; compute; trivial;
-        try contradiction; apply comp.
-    Defined.
+    Global Program Instance: CatComp Object := fun x y z f g => arrow ((mor f)◎ (mor g)) _.
+    Next Obligation.
+      intro j. rewrite comp_assoc. do 2 rewrite cone_mor_inst. reflexivity.
+    Qed.
 
     Let id_l' (x y: Object) (f: x ⟶ y): cat_id ◎ f = f.
     Proof.
-      destruct x, y; compute; trivial; apply id_l.
+      unfold comp.  unfold CatComp_instance_0.
+      red. red. simpl.
+      apply id_l.
     Qed.
     Let id_r' (x y: Object) (f: x ⟶ y): f ◎ cat_id = f.
     Proof.
-      destruct x, y; compute; trivial; apply id_r.
+      unfold comp, CatComp_instance_0.
+      do 2 red. simpl.
+      apply id_r.
     Qed.
 
   Section comp_assoc.
     Context (w x y z: Object) (a: w ⟶ x) (b: x ⟶ y) (c: y ⟶ z).
     Lemma comp_assoc': c ◎ (b ◎ a) = (c ◎ b) ◎ a.
     Proof.
-      destruct w, x, y, z; compute; trivial; try contradiction; apply comp_assoc.
+      unfold comp, CatComp_instance_0.
+      do 2 red; simpl.
+      apply comp_assoc.
     Qed.
   End comp_assoc.
 
   Global Instance: forall x y z: Object, Proper (equiv ==> equiv ==> equiv)
     ((◎) : (y ⟶ z) -> (x ⟶ y) -> (x ⟶ z)).
   Proof.
-    intros x y z; destruct x, y, z; compute; trivial; try contradiction; [apply H0 | apply H2].
+    intros x y z. intros f f' Hf g g' Hg.
+    unfold comp, CatComp_instance_0.
+    do 2 red. simpl.
+    apply comp_proper; assumption.
   Qed.
 
   Global Instance: Category Object := { comp_assoc := comp_assoc'; id_l := id_l'; id_r := id_r'}.
 
 End contents.
 
-End Cross.
+End Cone.
