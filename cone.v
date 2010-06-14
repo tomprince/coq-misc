@@ -7,7 +7,7 @@ Require Import Setoid.
 Require Import abstract_algebra functors.
 (* me *)
 
-Section Cone.
+Section Cross.
 Context `(Category J) `(Category C) `{!Functor (X:J->C) X'}.
 
 Class Cone (c:C) (f:forall j:J, c ⟶ X j) := cone :
@@ -92,11 +92,11 @@ Section more_arrows. Context (x y: Object).
     intros x y z. intros f f' Hf g g' Hg.
     unfold comp, CatComp_instance_0.
     do 2 red. simpl.
-    apply comp_proper; assumption.
+    apply comp_proper.
   Qed.
 
   Global Instance: Category Object := { comp_assoc := comp_assoc'; id_l := id_l'; id_r := id_r'}.
 
 End contents.
 
-End Cone.
+End Cross.
