@@ -1,12 +1,9 @@
-Require Import Morphisms.
-Require Import RelationClasses.
-Require Import Equivalence.
-Require Import Setoid.
-
-(* Eelis *)
-Require Import abstract_algebra.
+Require Import
+   Morphisms RelationClasses Equivalence Setoid
+   abstract_algebra square.
+Require comma.
 (* me *)
-Require Import retract square.
+Require Import retract.
 Require comma.
 
 Set Implicit Arguments.
