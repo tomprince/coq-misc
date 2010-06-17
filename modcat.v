@@ -7,7 +7,7 @@ Require Import Setoid.
 Require Import abstract_algebra.
 (* me *)
 Require Import retract square.
-Require morcat.
+Require comma.
 
 Set Implicit Arguments.
 Section test.
