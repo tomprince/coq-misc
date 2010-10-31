@@ -1,4 +1,5 @@
--R new-alg-hierarchy ""
+-custom "scons -C math-classes/src $*.vo -j4" "" math-classes/src/%.vo
+-R math-classes/src ""
 cross.v
 join.v
 retract.v
