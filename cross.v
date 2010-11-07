@@ -10,7 +10,7 @@ Require Import interfaces.abstract_algebra.
 Section Cross.
  Context `(Category L) `(Category R).
 
-Inductive Object := 
+Inductive Object :=
 | inl : L -> Object
 | inr : R -> Object
 | cross
@@ -30,7 +30,7 @@ Hint Extern 4 (Arrows Object) => exact Arrow: typclasses_instance.
 
 Section contents.
 Section more_arrows. Context (x y: Object).
-    Global Instance e: Equiv (x ⟶ y) := 
+    Global Instance e: Equiv (x ⟶ y) :=
       match x, y with
         | inl l, inl r => fun f g: l ⟶ r => f = g
         | inr l, inr r => fun f g: l ⟶ r => f = g

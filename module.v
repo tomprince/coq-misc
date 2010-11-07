@@ -46,7 +46,7 @@ Proof.
   rewrite left_identity.
   rewrite <- rmodule_distr_l.
   rewrite left_identity.
-  apply rmodule_action_proper; try reflexivity. 
+  apply rmodule_action_proper; try reflexivity.
 Qed.
 
 Global Instance SemiGroup_Morphism_id M `{SemiGroup M}: SemiGroup_Morphism (id: M→M).
@@ -114,13 +114,13 @@ Class Rmodule_Morphism Scalar M1 M2 {ez: Equiv Scalar} {e1: Equiv M1} `{Ralgebra
 
 Global Instance Rmodule_Morphism_id `{Ring R} `{Rmodule R M}: Rmodule_Morphism (id: M→M).
 Proof.
-  constructor; try typeclasses eauto. 
+  constructor; try typeclasses eauto.
   reflexivity.
 Qed.
 Local Implicit Arguments Rmodule [[ez] [ee] [op]].
 
 Global Instance Rmodule_Morphism_comp (R S T U: Type) `{Ring R}
-  `{Rmodule R S, Rmodule R T, Rmodule R U} 
+  `{Rmodule R S, Rmodule R T, Rmodule R U}
   {f: T->U} (g: S->T)
   `{!Rmodule_Morphism f} `{!Rmodule_Morphism g}
   : Rmodule_Morphism (compose f g).
@@ -245,7 +245,7 @@ End Kernel.
 
 Section Kernel_Group.
 (* TODO: This only needs that M is a monoid. *)
-Context `{Group M, Group N} (f: M→N) `{!Monoid_Morphism f}. 
+Context `{Group M, Group N} (f: M→N) `{!Monoid_Morphism f}.
 Global Program Instance: GroupInv (Kernel f) := fun k => exist _ (-`k) _.
 Next Obligation.
   destruct k as [k Hk]; simpl.
@@ -262,13 +262,13 @@ Proof.
 Qed.
 End Kernel_Group.
 Section Kernel_AbGroup.
-Context `{AbGroup M, AbGroup N} (f: M→N) `{!Monoid_Morphism f}. 
+Context `{AbGroup M, AbGroup N} (f: M→N) `{!Monoid_Morphism f}.
 (* TODO: This only needs a sub semigroup to prove. *)
 Global Instance: AbGroup (Kernel f).
 End Kernel_AbGroup.
 
 Section Kernel_Rmodule.
-Context `{Ring R} `{Rmodule R M, Rmodule R N} (f: M→N) `{!Rmodule_Morphism f}. 
+Context `{Ring R} `{Rmodule R M, Rmodule R N} (f: M→N) `{!Rmodule_Morphism f}.
 Global Program Instance rk: RalgebraAction R (Kernel f) := fun r k => exist _ (r<*>` k) _.
 Next Obligation.
   destruct k as [k Hk]; simpl.
@@ -278,7 +278,7 @@ Qed.
 Global Instance: !Rmodule R (Kernel f).
 Proof.
   constructor; try typeclasses eauto; unfold equiv, e, Proper, "==>"; intuition;
-    repeat match goal with 
+    repeat match goal with
       | [ x : Kernel f |- _ ] => destruct x
     end; simpl.
   * apply rmodule_unital.
@@ -299,4 +299,3 @@ End Kernel_Rmodule.
 
 Context `{M: nat → Type}.
 Context `{forall n: nat, Rmodule R (e:=e) (M n)}.
-

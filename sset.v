@@ -10,7 +10,7 @@ Set Implicit Arguments.
 
 Require Import Program.
 
-Definition Object := nat. 
+Definition Object := nat.
 Definition D (n:nat) :=  {x: nat | x < n}.
 Coercion D: nat >-> Sortclass.
 Instance: ∀ n, Equiv (D n) := fun n x y => `x ≡ `y.
@@ -19,7 +19,7 @@ Definition Arrow (M N: Object) := {f : M → N | (forall x y, le (`x)  (`y) → 
 
 Hint Extern 4 (Arrows Object) => exact Arrow : typeclass_instances.
 Section e. Context {M N: Object}.
-  Section D. 
+  Section D.
     Global Instance: ∀ f: Arrow M N, Setoid_Morphism (`f).
     Proof.
       constructor; try typeclasses eauto.
@@ -63,4 +63,3 @@ Let comp_assoc' (w x y z: Object) (a: w ⟶ x) (b: x ⟶ y) (c: y ⟶ z): c ◎ 
 Proof. intro; reflexivity. Qed.
 
 Global Instance: Category Object := { comp_assoc := comp_assoc'; id_l := id_l'; id_r := id_r'}.
- 

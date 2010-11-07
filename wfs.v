@@ -24,7 +24,7 @@ Global Instance SingleArrowClass `(f:a⟶b): ArrowClass (fun x y g => JMrelation
 Proof.
   intros ?????.
   split; intro HH; destruct HH as [k ?]; apply JMrelation.relate; transitivity k; intuition symmetry; trivial.
-Qed. 
+Qed.
 
 End ArrowClass.
 
@@ -178,4 +178,3 @@ apply (Dual_WFS_lift (WFS_lift0:=X)).
 Qed.
 
 End stuff_2.
-

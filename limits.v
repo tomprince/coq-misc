@@ -67,7 +67,7 @@ intros j j' f; intros m n Hmn.
 simpl. unfold Basics.compose.
 unfold etaj.
 rewrite (proj2_sig n j j').
-intuition. 
+intuition.
 Qed.
 
 Let Feta := (functor_category.arrow (F x) (functor_category.object X X' _) eta _).
@@ -93,7 +93,7 @@ Qed.
 Definition aa (a : comma.Lobj y) : x_t := exist _ _ (inx_t a).
 Global Instance: Setoid_Morphism (Beq:= sig_equiv _) aa.
 Proof.
-  stuff. stuff. 
+  stuff. stuff.
   constructor; apply _.
   apply _.
   intros b b' Hb j. simpl.
@@ -102,10 +102,10 @@ Proof.
   reflexivity.
 Qed.
 
-Program Let aaE : l (comma.Lobj y) ⇛ Fx :=  (fun j:J => exist Setoid_Morphism aa _). 
+Program Let aaE : l (comma.Lobj y) ⇛ Fx :=  (fun j:J => exist Setoid_Morphism aa _).
 Global Instance: NaturalTransformation aaE.
 Proof.
-  intros s t f g g' Hg j; simpl. 
+  intros s t f g g' Hg j; simpl.
   unfold xinx_t.
   pose (proj2_sig (comma.Cmap y j)); rewrite Hg.
   reflexivity.
@@ -120,8 +120,4 @@ Require dual.
 
 Let II : initial (Arrows0:=dual.flipA) co.
 Proof.
-  intro y. 
-
-
-
-
+  intro y.

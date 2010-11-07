@@ -23,9 +23,9 @@ Class Retract {a b a' b': C} (i: a'⟶a) (p: a⟶a') (i':b'⟶b) (p':b⟶b') (f:
 
 Section stuff_1.
 Context (a b:C) (i:a ⟶ b) (p: b⟶a) (HH:p ◎ i = cat_id).
-Program Instance: Retract i p cat_id cat_id p cat_id .
+Program Instance: Retract i p cat_id cat_id p cat_id.
 Next Obligation. apply id_l. Qed.
-Next Obligation. unfold Square; rewrite HH; apply id_l. Qed. 
+Next Obligation. unfold Square; rewrite HH; apply id_l. Qed.
 Next Obligation. red; reflexivity. Qed.
 
 Program Instance: Retract cat_id cat_id i p i cat_id.
@@ -44,7 +44,7 @@ Section stuff_2.
 Context (a b:C) (i:a ⟶ b) (p: b⟶a) (HH:p ◎ i = cat_id).
 Context (c:C) (j:c ⟶ b) (q: b⟶c) (II:q ◎ j = cat_id).
 Program Instance: Retract i p j q cat_id (q ◎ i).
-Next Obligation. red. rewrite id_l, comp_assoc. admit. Qed. 
+Next Obligation. red. rewrite id_l, comp_assoc. admit. Qed.
 Next Obligation. red. rewrite id_r. admit. Qed.
 End stuff_2.
 
@@ -55,7 +55,7 @@ Context (h:b⟶x) (UT:h◎i = f) (LT:p◎h = g).
 Context (j:b⟶c) (q:c⟶x) (F:q◎j=h).
 Context (q':x⟶c) (L:q◎q'=cat_id) (LL:q'◎f = j◎i).
 (*Context (j':c⟶b) (L:j◎j'=cat_id) (LL:q'◎f = j◎i).*)
-Program Instance: Retract cat_id cat_id q' q (j◎i) f. 
+Program Instance: Retract cat_id cat_id q' q (j◎i) f.
 Next Obligation. apply id_l. Qed.
 Next Obligation. red. rewrite id_r. apply LL. Qed.
 Next Obligation. red. rewrite id_r, comp_assoc. rewrite F. apply UT. Qed.

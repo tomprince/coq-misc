@@ -10,7 +10,7 @@ Set Implicit Arguments.
 Section test.
 Context `{Category M}.
 Class ArrowClass : Type := arrowClass : forall {x y: M}, (x ⟶ y) -> Prop.
-Class MorphismClass (P: ArrowClass) := 
+Class MorphismClass (P: ArrowClass) :=
   Prespect: forall (x y: M) (f g: x ⟶ y), f = g -> (P _ _ f <-> P _ _ g).
 
 Instance AndArrowClass (P Q: ArrowClass) : ArrowClass := fun {x y: M} (f: x ⟶ y) => P _ _ f /\ Q _ _ f.
@@ -44,7 +44,7 @@ Class WeakFactorizationSystem : Prop := {
   factor_classes: forall (x y: C) (f: x ⟶ y), (l f) // L /\ (r f) // R;
   lift_commute: forall (a b x y:C) (i:a⟶b) (p:x⟶y) f g (Sq : Square i p f g) (Li: L i) (Rp: R p)  , let h := (lift Sq Li Rp) in h◎i=f /\ g = p◎h;
   left_retract: forall x y x' y' `(l:x⟶y) (l':x'⟶y') `(!Retract i i' p p' l' l), L l' -> L l;
-  right_retract: forall x y x' y' `(r:x⟶y) (r':x'⟶y') `(!Retract i i' p p' r' r), R r' -> R r 
+  right_retract: forall x y x' y' `(r:x⟶y) (r':x'⟶y') `(!Retract i i' p p' r' r), R r' -> R r
 }.
 
 Section Lemmas.
