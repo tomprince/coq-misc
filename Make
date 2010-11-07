@@ -8,3 +8,4 @@ modcat.v
 limits.v
 module.v
 sset.v
+simple_product.v
