@@ -658,7 +658,6 @@ Next Obligation.
   simpl. 
   rewrite fChoice.
   assumption.
-  Show Proof.
 Qed.
 
 Global Instance: Exact (e1:=eck f)  (KernelMap p p' g h (Sq:=Sq_r)) Snake.
@@ -726,5 +725,3 @@ split.
   reflexivity.
 Qed.
 End SnakePart3.
-
-End Morphisms.

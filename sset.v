@@ -8,7 +8,8 @@ Require Import extra_tactics.
 
 Set Implicit Arguments.
 
-Require Import Program.
+Require Import Program. 
+Require peano_naturals.
 
 Definition Object := nat.
 Definition D (n:nat) :=  {x: nat | x < n}.

@@ -146,7 +146,7 @@ intros a b i lift_fR.
 pose (r := right_factor L R i).
 pose (l := left_factor L R i).
 assert (Sq: Square i r l cat_id) by
-  (red; rewrite id_l; apply factors_compose).
+  (red; rewrite left_identity; apply factors_compose).
 assert (Lifting Sq).
   refine (lift_fR _ _ _ _ _ _ _ _ Sq _ (right_factor_R)).
   apply JMrelation.relate; reflexivity.
@@ -154,8 +154,8 @@ eapply wfs_retract.
 - split.
  + apply id_l.
  + symmetry; apply lift_right_commute.
- + red; rewrite id_r; symmetry; apply lift_left_commute.
- + red; rewrite id_r; symmetry; apply factors_compose.
+ + red; rewrite right_identity; symmetry; apply lift_left_commute.
+ + red; rewrite right_identity; symmetry; apply factors_compose.
 - apply left_factor_L.
 Qed.
 
