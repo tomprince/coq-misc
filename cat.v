@@ -1,6 +1,6 @@
 Require Import
    Morphisms RelationClasses Equivalence Setoid Program
-   abstract_algebra categories.
+   abstract_algebra categories interfaces.functors.
 Require Import rings.
 Require dual.
 
@@ -42,53 +42,61 @@ End Null.
 Ungereralizable Arguments Null [Arrows H].
 Section NullArrow.
 Context `{Category C}.
+Class NullArrow x y := null_arrow: x ⟶ y.
+
+Class HasNullArrows `{forall x y, NullArrow x y} :=
+{ left_null : ∀ x y z (f:x⟶y), (null_arrow: y⟶z) ◎ f = null_arrow
+; right_null : ∀ x y z (f:y⟶z), f ◎ (null_arrow: x⟶y) = null_arrow }.
 Context `{Null C (Arrows0:=Arrows0) H z}.
-Set Typeclasses Debug.
+Section x.
 Context (x y: C).
-Check initial_arrow (Arrows0:=Arrows0) y ◎ terminal_arrow (Arrows0:=Arrows0) x.
-Class NullArrow (x y: C) (f: x⟶y) : Prop := null_arrow: f = initial_arrow y ◎ terminal_arrow x.
+Global Instance: NullArrow x y := initial_arrow y ◎ terminal_arrow x.
+End x.
+Global Instance: HasNullArrows.
+Proof.
+  constructor;
+  unfold null_arrow, NullArrow_instance_0;
+  intros r s t f;
+  [ rewrite <- comp_assoc, (terminal_arrow_unique r) | rewrite comp_assoc, (initial_arrow_unique t) ];
+  reflexivity.
+Qed.
 End NullArrow.
 
-Require Import interfaces.functors.
 Section Limits.
   Context `{Category C, Category J}.
   Context `{!Functor (X:J→C) X'}.
-Require cone.
 
-Context `{x : C}.
-Context `{x_j : ∀ j: J, x ⟶ X j}.
-Context `{ mor : ∀ (c:C) (c_j: ∀ j, c⟶X j) `{!cone.Cone c c_j}, c ⟶ x }.
-Class Limit : Prop :=
-{ limit_cone :> cone.Cone x x_j
-; limit_mor :> ∀ (c:C) `(c_cone: !cone.Cone c c_j), cone.ConeMorphism _ limit_cone (mor c c_j _)
-; limit_terminal :> Terminal _ (H1:=fun c: cone.Object => cone.arrow c (cone.object x x_j limit_cone) (mor _ _ _) (limit_mor _ _ )) }.
+  Section def.
+    Context (limit: C).
 
+    Class Cone (c:C) (f:forall j:J, c ⟶ X j) := cone: forall (j j': J) (a:j⟶j'), (fmap X a) ◎ f j = f j'.
+
+    Class ElimLimit: Type := limit_proj: ∀ j, limit ⟶ X j.
+    Class IntroLimit: Type := make_limit: ∀ x (x_j: ∀ j, x ⟶ X j), (Cone x x_j) → (x ⟶ limit).
+
+    Class Limit `{ElimLimit} `{IntroLimit}: Prop :=
+    { limit_compat:> Cone limit limit_proj
+    ; limit_factors: ∀ c ccomp ccompat, is_sole (λ h':c⟶limit, ∀ i, ccomp i = limit_proj i ◎ h') (make_limit c ccomp ccompat) }.
+
+    Lemma limit_round_trip `{Limit} (x: C) (h: ∀ j, x ⟶ X j) compat j:
+      limit_proj j ◎ make_limit x h compat = h j.
+    Proof. symmetry. apply limit_factors. Qed.
+  End def.
+
+  Lemma limits_unique `{Limit c} `{Limit c'}:
+    iso_arrows
+      (make_limit c c' (limit_proj c') _)
+      (make_limit c' c (limit_proj c) _).
+  Proof with intuition.
+    unfold iso_arrows.
+    revert c H3 H4 H5 c' H6 H7 H8.
+    cut (∀ `{Limit x} `{Limit y}, make_limit x y (limit_proj y) _ ◎ make_limit y x (limit_proj x) _ = cat_id)...
+    pose proof proj2 (limit_factors x x (limit_proj x) _) as Q.
+    rewrite (Q cat_id)...
+    + rewrite Q...
+      rewrite comp_assoc.
+      repeat rewrite limit_round_trip...
+    + rewrite right_identity...
+  Qed.
 End Limits.
 
-Require Import categories.empty.
-Section test.
-Context `{Category C}.
-Context `{Limit C (J:=Empty_set) (Arrows1:=_) (CatComp0:=_) (H:=_) (Arrows0:=_) (X:=Empty_map) (x:=x) (X':=Empty_map) (x_j:=Empty_map)}.
-
-Let CC (y: C) : cone.Object (X:=Empty_map:Empty_set→C) (X':=Empty_map) :=  (cone.object y Empty_map Empty_map).
-Let CCM {y: C} (f: y⟶x) : (CC y) ⟶ (cone.object _ _ limit_cone) :=  (cone.arrow (CC y) (cone.object _ _ limit_cone) f Empty_map).
-Global Instance: TerminalArrow x := fun y => mor y Empty_map Empty_map.
-Global Instance: Terminal x := fun y f' => (limit_terminal (Limit:=H1) (CC y) (CCM y f')).
-
-End test.
-
-Section test2.
-Context `{Category C} {x: C}.
-Context `{Terminal _ _ x}.
-
-Let CC (y: C) : cone.Object (X:=Empty_map:Empty_set→C) (X':=Empty_map) :=  (cone.object y Empty_map Empty_map).
-Let CCM {y: cone.Object (X:=Empty_map:_→C) (X':=Empty_map)} (f: cone.vertex y⟶x) : y ⟶ (CC x) :=  (cone.arrow y (CC x) f Empty_map).
-Instance: cone.Cone (x:C) (Empty_map) := Empty_map.
-Instance: forall c (f:c⟶x) (c_j:forall j:Empty_set, c ⟶ Empty_map j) `{c_cone:!cone.Cone c c_j}, cone.ConeMorphism (f':=Empty_map) c_cone Empty_map f := fun _ _ _ _ => Empty_map.
-Instance: Limit (J:=Empty_set) (Arrows1:=_) (CatComp0:=_) (H:=_) (Arrows0:=_) (X:=Empty_map:_→C) (x:=x) (X':=Empty_map) (x_j:=Empty_map) (mor:=fun c c_j _ => H1 c).
-Proof.
-econstructor.
-intros y f.
-apply H2.
-Qed.
-End test2.
