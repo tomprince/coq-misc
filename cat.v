@@ -67,6 +67,7 @@ Section Limits.
   Context `{!Functor (X:J→C) X'}.
 
   Section def.
+
     Context (limit: C).
 
     Class Cone (c:C) (f:∀ j:J, c ⟶ X j) := cone: ∀ (j j': J) (a:j⟶j'), (fmap X a) ◎ f j = f j'.
@@ -76,11 +77,11 @@ Section Limits.
 
     Class Limit `{ElimLimit} `{IntroLimit}: Prop :=
     { limit_compat:> Cone limit limit_proj
-    ; limit_factors: ∀ c ccomp ccompat, is_sole (λ h':c⟶limit, ∀ i, ccomp i = limit_proj i ◎ h') (make_limit c ccomp ccompat) }.
+    ; limit_factors: ∀ c ccomp ccompat, is_sole (λ h':c⟶limit, ∀ i, limit_proj i ◎ h' = ccomp i) (make_limit c ccomp ccompat) }.
 
     Lemma limit_round_trip `{Limit} (x: C) (h: ∀ j, x ⟶ X j) compat j:
       limit_proj j ◎ make_limit x h compat = h j.
-    Proof. symmetry. apply limit_factors. Qed.
+    Proof. apply limit_factors. Qed.
   End def.
 
   Lemma limits_unique `{Limit c} `{Limit c'}:
@@ -172,7 +173,7 @@ Section equalizer_as_limit.
   pose (equalizer_factors f c c0 (ccomp X) _).
   split.
   + intros [].
-    - symmetry; apply i.
+    - apply i.
     - rewrite <- (ccompat X Y j).
       unfold limit_proj, ElimLimit_instance_0.
       simpl.
@@ -182,7 +183,6 @@ Section equalizer_as_limit.
       reflexivity.
   + intros ? H4.
     apply i.
-    symmetry.
     apply (H4 X).
   Qed.
 End equalizer_as_limit.
@@ -231,7 +231,7 @@ Definition limit := sig sub.
 Instance e: Equiv limit := λ x y: limit, ∀ j, `x j = `y j.
 Instance: Setoid limit.
 Proof. prove_equivalence. Qed.
-Let l := setoid.object limit _ _.
+Definition l := setoid.object limit _ _.
 
 Section elim.
 Context (j:J).
@@ -241,6 +241,13 @@ Proof. hnf; unfold elim; auto. Qed.
 Global Instance: Setoid_Morphism (elim).
 End elim.
 Program Instance: ElimLimit (X:=X) l := elim.
+
+Instance: Cone (X:=X) l (limit_proj _).
+hnf. intros.
+intros [][]?. simpl. unfold elim, compose. simpl in *.
+unfold sub in s.
+rewrite s. apply H1.
+Qed.
 
 Section intro.
 Context (x: setoid.Object) (x_j : ∀ j : J, x ⟶ X j) `(cone:!Cone x x_j).
@@ -259,13 +266,8 @@ Global Instance: Setoid_Morphism intro.
 End intro.
 Program Instance: IntroLimit (X:=X) l := intro.
 
-Global Instance: Limit l.
-constructor.
-* hnf. intros.
-  intros [][]?. simpl. unfold elim, compose. simpl in *.
-  unfold sub in s.
-  rewrite s. apply H1.
-* intros.
+Global Program Instance: Limit l.
+Next Obligation.
   split.
   + intros ????.
     simpl; unfold elim, intro, compose; simpl.
@@ -273,8 +275,8 @@ constructor.
     apply sm_proper.
     auto.
   + intros L compat x y Hxy j.
-    symmetry.
-    apply (compat j y x).
-    symmetry; assumption.
+    apply (compat j x y).
+    assumption.
 Qed.
+
 End SetoidLimits.
