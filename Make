@@ -5,7 +5,8 @@ join.v
 retract.v
 wfs.v
 modcat.v
-limits.v
 module.v
 sset.v
 simple_product.v
+interfaces_rmodule.v
+cat.v

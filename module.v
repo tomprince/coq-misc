@@ -1,7 +1,7 @@
 Require Import
    Morphisms RelationClasses Equivalence Setoid Program
    abstract_algebra varieties.setoid semigroup.
-Require Import rings.
+Require Import rings groups.
 
 (* me *)
 
@@ -61,23 +61,6 @@ Proof.
   rewrite <- rmodule_distr_l.
   rewrite left_identity.
   apply rmodule_action_proper; try reflexivity.
-Qed.
-
-Global Instance SemiGroup_Morphism_comp
-    S T U `{SemiGroup S} `{SemiGroup T} `{SemiGroup U} (f: T→U) (g: S→T)
-    `{!SemiGroup_Morphism f} `{!SemiGroup_Morphism g}
-  : SemiGroup_Morphism (f∘g).
-Proof.
-  constructor; try typeclasses eauto.
-  unfold compose. do 2 setoid_rewrite preserves_sg_op; reflexivity.
-Qed.
-Global Instance Monoid_Morphism_comp
-    S T U `{Monoid S} `{Monoid T} `{Monoid U} (f: T→U) (g: S→T)
-    `{!Monoid_Morphism f} `{!Monoid_Morphism g}
-  : Monoid_Morphism (f∘g).
-Proof.
-  constructor; try typeclasses eauto.
-  unfold compose; do 2 rewrite preserves_mon_unit; reflexivity.
 Qed.
 
 End Morphisms.

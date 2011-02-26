@@ -13,7 +13,7 @@ Section ArrowClass.
 Context `{Category C}.
 
 Class ArrowClass (P: forall {x y: C}, (x ⟶ y) -> Prop) :=
-  arrowClass:> forall x y, Proper (equiv ==> equiv)%signature (P x y).
+  arrowClass:> forall x y, Proper (equiv ==> equiv)%signature (@P x y).
 
 Global Instance ArrowClassIntersection `(ArrowClass P) `(ArrowClass Q) : ArrowClass (fun _ _ f => P _ _ f /\ Q _ _ f).
 Proof.
@@ -101,11 +101,11 @@ Global Instance Dual_WFS_lift: WFS_lift (Arrows0:=dual.flipA) (L:=dualP R) (R:=d
 Proof.
 repeat intro.
 do 3 red in i, p, f, g.
-assert (Sq:Square p i g f).
-  red; hyp_rewrite; reflexivity.
-assert (Lifting Sq).
-apply wfs_lift; hyp_apply.
-eapply lifting; do 2 red; unfold comp, dual.CatComp_instance_0, Basics.flip.
+assert (Sq:Square p i g f) by
+  (red; hyp_rewrite; reflexivity).
+assert (Lifting Sq) by
+  (apply wfs_lift; hyp_apply).
+eapply lifting; compute.
 instantiate (1:=lift Sq).
 - apply lift_right_commute.
 - apply lift_left_commute.
@@ -147,12 +147,12 @@ pose (r := right_factor L R i).
 pose (l := left_factor L R i).
 assert (Sq: Square i r l cat_id) by
   (red; rewrite left_identity; apply factors_compose).
-assert (Lifting Sq).
-  refine (lift_fR _ _ _ _ _ _ _ _ Sq _ (right_factor_R)).
-  apply JMrelation.relate; reflexivity.
+assert (Lifting Sq) by
+  (refine (lift_fR _ _ _ _ _ _ _ _ Sq _ (right_factor_R));
+  apply JMrelation.relate; reflexivity).
 eapply wfs_retract.
 - split.
- + apply id_l.
+ + apply left_identity.
  + symmetry; apply lift_right_commute.
  + red; rewrite right_identity; symmetry; apply lift_left_commute.
  + red; rewrite right_identity; symmetry; apply factors_compose.

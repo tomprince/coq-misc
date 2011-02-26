@@ -5,6 +5,7 @@ Require comma.
 (* me *)
 Require Import retract.
 Require comma.
+Require Import extra_tactics.
 
 Set Implicit Arguments.
 Section test.
@@ -31,7 +32,7 @@ Implicit Arguments r [[M] [Arrows0] [H] [CatComp0] [x] [y] [Factorization]].
 Implicit Arguments z [[M] [Arrows0] [H] [CatComp0] [x] [y] [Factorization]].
 Implicit Arguments lift [[M] [Arrows0] [H] [CatComp0] [Lift] [a] [b] [x] [y]].
 Notation "P & Q" := (AndArrowClass P Q).
-Notation "f '//' L" := (L _ _ f) (at level 60).
+Notation "f '//' L" := (L _ _ f).
 
 Section WeakFactorizationSystem.
 Context `{Category C}.
@@ -47,25 +48,24 @@ Class WeakFactorizationSystem : Prop := {
   right_retract: forall x y x' y' `(r:x⟶y) (r':x'⟶y') `(!Retract i i' p p' r' r), R r' -> R r
 }.
 
+Implicit Arguments square [[C] [Arrows0][H][CatComp0][a][b][x][y]].
 Section Lemmas.
 Context `{WeakFactorizationSystem}.
 
-Lemma lem `(i:a⟶b) (Hyp:forall `(p:x⟶y) `(!Square i p f g), R p -> {h | (h◎i = f /\ p◎h = g)}): L i.
+Lemma lem `(i:a⟶b) (Hyp:forall `{p:x⟶y} `(!Square i p f g), R p -> {h | (h◎i = f /\ p◎h = g)}): L i.
 Proof.
-assert (R (r i)). apply factor_classes.
-assert (sq : Square i (r i) (l i) cat_id).
-  red; rewrite id_l; rewrite comm; reflexivity.
-pose (h:=Hyp _  _ _ _ _ sq H2).
-destruct h. destruct a0.
-eapply left_retract.
-split.
-- apply id_l.
-- apply H4.
-- apply (@square _ _ _ _ _ _ _ _ i (l i) cat_id ).
-  red. rewrite id_r. apply H3.
-- apply (@square _ _ _ _ _ _ _ _ (l i) i cat_id (r i)).
-  red. rewrite id_r. rewrite comm. reflexivity.
-- apply factor_classes.
+assert (sq: Square i (r i) (l i) cat_id) by
+  (unfold Square; rewrite left_identity; symmetry; apply comm).
+Show Proof.
+apply Hyp in sq as [];
+[ eapply left_retract;
+  [constructor|] |]; try apply factor_classes.
+- apply left_identity.
+- hyp_apply.
+- apply (square i (l i) cat_id).
+  unfold Square; rewrite right_identity; intuition.
+- apply (square (l i) i cat_id (r i)).
+  unfold Square; rewrite right_identity; apply comm.
 Qed.
 End Lemmas.
 
@@ -106,5 +106,5 @@ Class WeakModelCategory2 : Prop  := {
   Lfactor2: WeakFactorizationSystem M TC F Lfact;
   Rfactor2: WeakFactorizationSystem M C TF Rfact
 }.
-Check  W2of3: forall x y z (f:x⟶y) (g:y ⟶ z), (W f /\ W g -> W (g◎f)) /\ (W f /\ W (g◎f) -> W g) /\ (W g /\ W (g◎f) -> W f).
-}.
+End WeakModCat2.
+(*  W2of3: forall x y z (f:x⟶y) (g:y ⟶ z), (W f /\ W g -> W (g◎f)) /\ (W f /\ W (g◎f) -> W g) /\ (W g /\ W (g◎f) -> W f).*)
