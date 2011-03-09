@@ -1,4 +1,4 @@
--custom "scons -C math-classes/src $*.vo -j4" "" math-classes/src/%.vo
+#-custom "scons -C math-classes/src $*.vo -j4" "" math-classes/src/%.vo
 -R math-classes/src ""
 cross.v
 join.v

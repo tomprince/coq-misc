@@ -12,17 +12,16 @@ Require Import extra_tactics.
 Infix "<*>" := ralgebra_action (at level 30).
 
 Class Rmodule `(ez: Equiv Scalar) `(ee: Equiv Elem) `{op: RalgebraAction Scalar Elem}
-    szalar_plus szalar_mult szalar_zero szalar_one szalar_inv
+    scalar_plus scalar_mult scalar_zero scalar_one scalar_inv
     elem_plus elem_zero elem_opp: Prop :=
-  { rmodule_ring: @Ring Scalar ez szalar_plus szalar_mult szalar_zero szalar_one szalar_inv
+  { rmodule_ring: @Ring Scalar ez scalar_plus scalar_mult scalar_zero scalar_one scalar_inv
   ; rmodule_abgroup:> @AbGroup _ _ elem_plus elem_zero elem_opp
-  ; rmodule_unital: `(1 <*> x = x)
-  ; rmodule_action_proper:> Proper (ez ==> ee ==> ee) op
-  ; rmodule_distr_l: `(x <*> (a & b) = (x <*> a) & (x <*> b))
-  ; rmodule_distr_r: `((x + y) <*> a = (x <*> a) & (y <*> a))
-  ; rmodule_assoc: `((x * y) <*> a = x <*> (y <*> a)) }.
+  ; rmodule_unital: LeftIdentity ralgebra_action 1
+  ; rmodule_action_proper:> Proper (ez ==> ee ==> ee) ralgebra_action
+  ; rmodule_distrute:> HeteroDistribute ralgebra_action (+) sg_op sg_op
+  ; rmodule_assoc:> HeteroAssociative (.*.) ralgebra_action ralgebra_action ralgebra_action  }.
 
-Ungereralizable Arguments  Rmodule [ez szalar_plus szalar_mult szalar_zero szalar_one szalar_inv].
+Ungereralizable Arguments  Rmodule [ez scalar_plus scalar_mult scalar_zero scalar_one scalar_inv].
 
 Class Ralgebra `(ez: Equiv Scalar) `(e': Equiv Elem) `{RalgebraAction Scalar Elem}
     szalar_plus szalar_mult szalar_inv szalar_zero szalar_one
@@ -49,18 +48,18 @@ Section Morphisms.
 Context `{Ring R} `{Rmodule R M} {r: R}.
 Global Instance: SemiGroup_Morphism (ralgebra_action r).
 Proof.
-  intuition constructor; try typeclasses eauto.
   constructor; try typeclasses eauto.
-  apply rmodule_distr_l.
+  constructor; typeclasses eauto.
+  apply distribute_l.
 Qed.
 Global Instance: Monoid_Morphism (ralgebra_action r).
 Proof.
   intuition constructor; try typeclasses eauto.
   apply (right_cancellation (r<*>-mon_unit)).
   rewrite left_identity.
-  rewrite <- rmodule_distr_l.
+  rewrite <- distribute_l.
   rewrite left_identity.
-  apply rmodule_action_proper; try reflexivity.
+  apply rmodule_action_proper; reflexivity.
 Qed.
 
 End Morphisms.
@@ -71,17 +70,16 @@ Context `{Ring R} `{Rmodule R M}.
 Lemma rmodule_zero_action r: (0 <*> r = mon_unit).
 Proof.
   apply (left_cancellation (1<*>r)).
-  rewrite <- rmodule_distr_r.
-  rewrite (right_identity (1<*>r)).
-  apply rmodule_action_proper; try reflexivity.
-  apply right_identity.
+  rewrite <- distribute_r.
+  rewrite 2 right_identity.
+  reflexivity.
 Qed.
 Lemma rmodule_minus: `((-r) <*> m = -r <*> m).
 Proof.
   intros r m.
   apply (left_cancellation (r<*>m)).
-  rewrite <- (rmodule_distr_r).
-  do 2 rewrite right_inverse.
+  rewrite <- (distribute_r).
+  rewrite 2 right_inverse.
   apply rmodule_zero_action.
 Qed.
 End Basic_Lemmas.
@@ -90,9 +88,9 @@ End Basic_Lemmas.
 Section Rmodules.
 
 Class Rmodule_Morphism {Scalar M1 M2: Type} {ez: Equiv Scalar} {e1: Equiv M1} `{RalgebraAction Scalar M1} {e2: Equiv M2} `{RalgebraAction Scalar M2}
-    {szalar_plus} {szalar_mult} {szalar_zero: RingZero Scalar} {szalar_one: RingOne Scalar} {szalar_inv: GroupInv Scalar}
+    {scalar_plus} {scalar_mult} {scalar_zero: RingZero Scalar} {scalar_one: RingOne Scalar} {scalar_inv: GroupInv Scalar}
     {M1_plus} {M1_zero} {M1_opp} {M2_plus} {M2_zero} {M2_opp} (f: M1 -> M2) :=
-{ rmodule_morphism_ring : @Ring Scalar ez szalar_plus szalar_mult szalar_zero szalar_one szalar_inv
+{ rmodule_morphism_ring : @Ring Scalar ez scalar_plus scalar_mult scalar_zero scalar_one scalar_inv
 ; rmodule_morphism_M1_abgroup: @Rmodule Scalar _ M1 _ _ _ _ _ _ _ M1_plus M1_zero M1_opp
 ; rmodule_morphism_M2_abgroup: @Rmodule  Scalar _ M2 _ _ _ _ _ _ _ M2_plus M2_zero M2_opp
 ; rmodule_morphism_groupmor:> Monoid_Morphism f
@@ -119,7 +117,7 @@ Proof.
 Qed.
 
 Context `{Ring R}.
-Local Implicit Arguments Rmodule [[ez] [ee] [op] [szalar_plus] [szalar_mult] [szalar_inv] [szalar_zero] [szalar_one]].
+Local Implicit Arguments Rmodule [[ez] [ee] [op] [scalar_plus] [scalar_mult] [scalar_inv] [scalar_zero] [scalar_one]].
 
 Record Object :=
   { module :> Type
@@ -167,16 +165,18 @@ Proof.
   reflexivity.
 Qed.
 
-Let id_l' (x y: Object) (f: x⟶y): cat_id ◎ f = f.
-Proof. intro; reflexivity. Qed.
-Let id_r' (x y: Object) (f: x⟶y): f ◎ cat_id = f.
-Proof. intro; reflexivity. Qed.
+Hint Extern 4 => reflexivity.
+Hint Extern 4 => repeat intro.
+Program Instance: ∀ x y: Object, LeftIdentity (comp x _ y) cat_id.
+Program Instance: ∀ x y: Object, RightIdentity (comp x _ y) cat_id.
+Program Instance: ArrowsAssociative comp.
 
-Lemma comp_assoc' (w x y z: Object) (a: w ⟶ x) (b: x ⟶ y) (c: y ⟶ z): c ◎ (b ◎ a) = (c ◎ b) ◎ a.
-Proof. intro; reflexivity. Qed.
-
-Global Instance: Category Object := { comp_assoc := comp_assoc'; id_l := id_l'; id_r := id_r'}.
-
+Global Instance: Category Object.
+Show.
+try typeclasses eauto.
+Show.
+repeat (constructor; typeclasses eauto).
+Show.
 End Rmodules.
 
 Section Kernel.
@@ -205,7 +205,7 @@ Global Instance: Associative Kop.
 Proof.
   intros [??][??][??].
   unfold equiv, ee, Kop; simpl.
-  apply (sg_ass _).
+  apply associativity.
 Qed.
 Global Instance: SemiGroup Kernel.
 Global Program Instance: MonoidUnit Kernel := exist _ mon_unit preserves_mon_unit.
@@ -247,7 +247,7 @@ Proof. intros [??][??]?; unfold equiv, ee; simpl; apply inv_proper; assumption. 
 Global Instance Kernel_Group: Group `{Kernel f}.
 Proof.
   constructor; try typeclasses eauto
-  ; intros [??]; unfold equiv, ee; simpl; [apply ginv_l | apply ginv_r].
+  ; intros [??]; unfold equiv, ee; simpl; [apply left_inverse | apply right_inverse].
 Qed.
 End Kernel_Group.
 Section Kernel_AbGroup.
@@ -266,15 +266,15 @@ Next Obligation.
 Qed.
 Global Instance: !Rmodule R (Kernel f).
 Proof.
-  constructor; try typeclasses eauto; unfold equiv, ee, Proper, "==>"; intuition;
+  repeat (constructor; try typeclasses eauto); repeat intro; unfold equiv, ee;
     repeat match goal with
       | [ x : Kernel f |- _ ] => destruct x
     end; simpl.
   * apply rmodule_unital.
   * apply rmodule_action_proper; assumption.
-  * apply rmodule_distr_l.
-  * apply rmodule_distr_r.
-  * apply rmodule_assoc.
+  * apply distribute_l. 
+  * apply distribute_r.
+  * apply associativity.
 Qed.
 
 Global Instance: Rmodule_Morphism (@projT1 _ _:Kernel f→M).
@@ -302,11 +302,11 @@ Proof. constructor.
   * intros x y [k Hk]; exists (-k).
     rewrite preserves_inv; try typeclasses eauto.
     apply (left_cancellation (f k)).
-    rewrite <- Hk, sg_ass, ginv_r, left_identity; try typeclasses eauto.
+    rewrite <- Hk, associativity, right_inverse, left_identity; try typeclasses eauto.
     reflexivity.
   * intros x y z [k Hk] [k' Hk'].
     exists (k & k').
-    rewrite preserves_sg_op, Hk, Hk', sg_ass; try typeclasses eauto.
+    rewrite preserves_sg_op, Hk, Hk', associativity; try typeclasses eauto.
     reflexivity.
 Qed.
 Global Instance: Setoid Cokernel.
@@ -323,21 +323,19 @@ Proof.
   exists mon_unit.
   rewrite preserves_mon_unit, left_identity.
   destruct x, y, z. simpl.
-  apply sg_ass.
-  typeclasses eauto.
+  apply associativity.
 Qed.
 Global Instance: Proper (equiv==>equiv==>equiv) (sg_op:_->_->Cokernel).
 Proof.
   intros [?][?][k Hk] [?][?][k' Hk']. 
   exists (k & k'); simpl.
   setoid_rewrite Hk.  setoid_rewrite Hk'.
-  rewrite <- sg_ass at 1 by typeclasses eauto.
-  setoid_rewrite sg_ass at 2; try typeclasses eauto.
+  rewrite <- associativity at 1 by typeclasses eauto.
+  setoid_rewrite associativity at 2; try typeclasses eauto.
   setoid_rewrite commutativity at 3. simpl.
-  repeat rewrite sg_ass by typeclasses eauto.
-  rewrite <- preserves_sg_op, <- sg_ass.
+  repeat rewrite associativity by typeclasses eauto.
+  rewrite <- preserves_sg_op, <- associativity.
   reflexivity.
-  typeclasses eauto.
 Qed.
 Global Instance: Commutative (A:=Cokernel) sg_op.
 Proof.
@@ -377,8 +375,8 @@ Qed.
 Global Instance: Group Cokernel.
 Proof.
   constructor; try typeclasses eauto.
-  * intros [x]. exists mon_unit. rewrite preserves_mon_unit, right_identity. simpl. apply ginv_l.
-  * intros [x]. exists mon_unit. rewrite preserves_mon_unit, right_identity. simpl. apply ginv_r.
+  * intros [x]. exists mon_unit. rewrite preserves_mon_unit, right_identity. simpl. apply left_inverse.
+  * intros [x]. exists mon_unit. rewrite preserves_mon_unit, right_identity. simpl. apply right_inverse.
 Qed.
 Global Instance: AbGroup Cokernel.
 End CoKernel.
@@ -409,17 +407,17 @@ Proof.
   intros ? r Hr [?][?][k Hk]. exists (r <*> k).
   simpl.
   rewrite Hk, preserves_rmodule_action; simpl.
-  rewrite <- rmodule_distr_l.
+  rewrite <- distribute_l.
   apply rmodule_action_proper; [assumption | reflexivity].
 Qed.
 Global Instance: !Rmodule R (ee:=eck f) (Cokernel f).
 Proof.
-  constructor; try typeclasses eauto.
+  repeat (constructor; try typeclasses eauto).
   Ltac simpl_cok := exists mon_unit; rewrite preserves_mon_unit, left_identity; simpl.
   * intros [x]; simpl_cok. apply rmodule_unital.
-  * intros r [a] [b]; simpl_cok; apply rmodule_distr_l.
-  * intros r s [a]; simpl_cok; apply rmodule_distr_r.
-  * intros r s [a]; simpl_cok; apply rmodule_assoc.
+  * intros r [a] [b]; simpl_cok; apply distribute_l.
+  * intros r s [a]; simpl_cok; apply distribute_r.
+  * intros r s [a]; simpl_cok; apply associativity.
 Qed.
 Global Instance Rmodule_Morphism_1: Rmodule_Morphism (e2:=eck f) cok.
 Proof. constructor; try typeclasses eauto; reflexivity. Qed.
@@ -459,11 +457,11 @@ Proof.
   * intro Hn.
     assert (g (n & -(n')) = mon_unit).
     rewrite preserves_sg_op, Hn, <- preserves_sg_op.
-    rewrite ginv_r.
+    rewrite right_inverse.
     apply preserves_mon_unit.
     set (m := kernel_in_image f g (n & -n')).
     destruct m as [m Hm]; [assumption | exists m].
-    rewrite Hm, <- sg_ass, ginv_l, right_identity; try typeclasses eauto.
+    rewrite Hm, <- associativity, left_inverse, right_identity; try typeclasses eauto.
     reflexivity.
   * intros [m Hm].
     rewrite Hm.
@@ -704,7 +702,7 @@ split.
   rewrite preserves_sg_op, <- Sq_l.
   rewrite <- Hn, <- preserves_sg_op.
   rewrite Hm.
-  rewrite <- sg_ass, left_inverse, right_identity; try typeclasses eauto.
+  rewrite <- associativity, left_inverse, right_identity; try typeclasses eauto.
   reflexivity.
 Qed.
 End SnakePart3.

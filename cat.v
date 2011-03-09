@@ -52,12 +52,13 @@ Section x.
 Context (x y: C).
 Global Instance: NullArrow x y := initial_arrow y ◎ terminal_arrow x.
 End x.
+  Require Import AAC.
 Global Instance: HasNullArrows.
 Proof.
   constructor;
-  unfold null_arrow, NullArrow_instance_0;
   intros r s t f;
-  [ rewrite <- comp_assoc, (terminal_arrow_unique r) | rewrite comp_assoc, (initial_arrow_unique t) ];
+  unfold null_arrow, NullArrow_instance_0;
+  [ rewrite <- associativity, (terminal_arrow_unique r) | rewrite associativity, (initial_arrow_unique t) ];
   reflexivity.
 Qed.
 End NullArrow.
@@ -94,7 +95,7 @@ Section Limits.
     cut (∀ `{Limit x} `{Limit y}, make_limit x y (limit_proj y) _ ◎ make_limit y x (limit_proj x) _ = cat_id)...
     pose proof proj2 (limit_factors x x (limit_proj x) _) as Q.
     setoid_rewrite Q...
-    + rewrite comp_assoc.
+    + rewrite associativity.
       repeat rewrite limit_round_trip...
     + rewrite right_identity...
   Qed.
@@ -131,7 +132,7 @@ Section Equalizer.
     cut (∀ `{Equalizer c} `{Equalizer c'}, make_equalizer c c' (equalizer_proj c') _ ◎ make_equalizer c' c (equalizer_proj c) _ = cat_id)...
     pose proof proj2 (equalizer_factors c c (equalizer_proj c) _) as Q.
     setoid_rewrite Q...
-    + rewrite comp_assoc.
+    + rewrite associativity.
       repeat rewrite equalizer_round_trip...
     + rewrite right_identity...
   Qed.
@@ -177,7 +178,7 @@ Section equalizer_as_limit.
     - rewrite <- (ccompat X Y j).
       unfold limit_proj, ElimLimit_instance_0.
       simpl.
-      setoid_rewrite <- comp_assoc.
+      setoid_rewrite <- associativity.
       unfold make_limit, IntroLimit_instance_0.
       rewrite equalizer_round_trip; try typeclasses eauto.
       reflexivity.
@@ -213,7 +214,7 @@ Section Kernel.
     cut (∀ `{Kernel k} `{Kernel k'}, make_kernel k k' (kernel_inj k') (kernel_compat _) ◎ make_kernel k' k (kernel_inj k) (kernel_compat _) = cat_id)...
     pose proof proj2 (kernel_factors k k (kernel_inj k) (kernel_compat _)) as Q.
     setoid_rewrite Q...
-    + rewrite comp_assoc.
+    + rewrite associativity.
       repeat rewrite kernel_round_trip...
     + rewrite right_identity...
   Qed.
