@@ -26,7 +26,6 @@ Definition Arrow (x y: Object) : Type := match x, y with
 end.
 
 Global Instance: Arrows Object := Arrow.
-Hint Extern 4 (Arrows Object) => exact Arrow: typclasses_instance.
 
 Section contents.
 Section more_arrows. Context (x y: Object).
