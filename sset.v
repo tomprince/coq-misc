@@ -14,6 +14,8 @@ Require Import Program.
 Require Import hom_functor.
 Set Inconsistent Universes.
 Require Import peano_naturals.
+Require Import theory.setoids.
+Require Import orders.maps.
 
 Hint Extern 4  => solve [repeat intro; simpl in *; hyp_apply].
 Hint Extern 10 => apply _.
@@ -26,27 +28,39 @@ Open Scope nat_scope.
 Instance: Equiv nat := eq.
 Program Instance: Equivalence (@eq nat).*)
 
+Require categories.order.
+Section induced_category.
+Context `{Category C} B (F: B → C).
+Instance InducedArrow: Arrows B := λ x y, F x ⟶ F y.
+Global Instance: CatId B := λ x, cat_id : F x ⟶ F x.
+Global Instance: CatComp B := λ x y z, comp (F x) (F y) (F z).
+Global Instance: Category B.
+Proof. constructor; unfold "⟶", InducedArrow, comp, CatComp_instance_0, cat_id, CatId_instance_0; try typeclasses eauto. Qed.
+End induced_category.
+
 Inductive Object : Set := {D :> nat}.
 Coercion Build_Object: nat >-> Object.
 Definition D' (n:Object) :=  {x: nat | x ≤ n}.
 Coercion D': Object >-> Sortclass.
 
-Instance: Equiv Object := λ n m, D n = D m.
-Existing Instance sig_equiv.
-Instance: ∀ n: nat, Le (Build_Object n) := λ _ x y, (`x) ≤ (`y).
-Instance: ∀ n: nat, Lt (Build_Object n) := λ _ x y, (`x) < (`y).
-Instance: ∀ n: nat, PartialOrder (A:=Build_Object n) (≤).
+Existing Instances sig_equiv po_setoid.
+Section induced_order.
+Context O `{PartialOrder O} (P : O → Prop).
+Global Instance: Le (sig P) := λ x y, `x ≤ `y.
+Global Instance: PartialOrder (A:=sig P) (≤).
 Proof.
   constructor.
   typeclasses eauto.
-  intros [][]? [][]?; split; intros ?; do 2 red in H, H0; simpl in H, H0; compute; [rewrite <-H, <-H0| rewrite H, H0]; apply H1.
+  intros [][]? [][]?; split; intros ?; do 2 red in H0, H1; simpl in H0, H1; compute; [rewrite <-H0, <-H1 | rewrite H0, H1]; apply H2.
   constructor; auto.
   intros [][][]; compute; transitivity x0; auto.
-  intros [][]; compute; intros; apply le_antisym; auto.
+  intros [][]; compute; intros. eapply (antisymmetry ); auto.
 Qed.
-Instance: ∀ n: nat, Setoid (Build_Object n) := {}.
-Definition Arrow := fun (N M: Object) => (sig (OrderPreserving (A:=N) (B:=M)): Set). 
-Hint Extern 4 (Arrows Object) => exact Arrow : typeclass_instances.
+End induced_order.
+
+Set Typeclasses Debug.
+Require categories.order.
+Instance: Arrows Object := InducedArrow _ (λ n, order.object (D' n)).
 Typeclasses Transparent Arrows Arrow.
  
 Section ord.
@@ -61,48 +75,10 @@ Section ord.
   Qed.
 End ord.
 
-Require Import orders.maps.
-Section e. Context {M N: Object}.
-  Section D.
-    Global Program Instance: ∀ f: Arrow M N, Setoid_Morphism (`f).
-    Next Obligation.
-      destruct f.
-      apply HHH.
-    Qed.
-  End D.
-  
-  Global Instance e: Equiv (M ⟶ N) := λ f g, ∀ x:M, `f  x = `g x.
-  Instance: Equivalence e.
-  Proof. prove_equivalence. Qed.
-  Global Instance: Setoid (M ⟶ N) := {}.
-End e.
-
-Global Program Instance: CatId Object := λ _, id.
-Global Program Instance: CatComp Object := λ _ _ _ g f, (compose g f).
-Next Obligation.
-  unfold canonical_names.Arrow, Arrow in *.
-  destruct f, g.
-  eapply compose_order_preserving.
-Qed.
-
-Global Instance: ∀ x y z: Object,
-    Proper (equiv ==> equiv ==> equiv) ((◎): (y ⟶ z) -> (x ⟶ y) -> (x ⟶ z)).
-Proof.
-  intros [][][]?.
-  unfold comp, equiv, e.
-  repeat intro; simpl.
-  unfold compose.
-  rewrite H0. apply H.
-Qed.
-
-Global Instance: ∀ x y: Object, LeftIdentity (comp x _ y) cat_id.
-Proof. intros ????; reflexivity. Qed.
-Global Instance: ∀ x y: Object, RightIdentity (comp x _ y) cat_id.
-Proof. intros ????; reflexivity. Qed.
-Global Instance: ArrowsAssociative Object.
-Proof. repeat intro; reflexivity. Qed.
-
-Global Instance: Category Object := {}.
+Global Instance: CatComp Object := _.
+Global Instance: CatId Object := _.
+Global Instance: Category Object := _.
+Require categories.dual.
 
 Definition Δ (n: Object) := functor.object (homTo n) _ _.
 
@@ -191,30 +167,72 @@ Definition ΛΔ (n: Object) (k: n) := functor.object (F (P:=FF n k)) Fmap _.
 Definition i (n: Object) (k: n) (m: Object) := functor.arrow (ΛΔ n k) (δΔ n) (N (iFF n k)).
 Definition i' (n: Object) (m: Object) := functor.arrow (δΔ n) (Δ n) N'.
 
+Instance: ∀ `{Equiv T}, Equiv (T → Prop) := λ _ _, ext_equiv.
+Definition P (T: Type) `{Equiv T} := {f : T → Prop | Proper ((=)==>(=)) f}.
+Instance: ∀ T `{Equiv T}, Le (P T) := λ T _ Q R, ∀ x, `Q x → `R x.
 
-Existing Instance order_morphism_mor.
-Instance: ∀ T, Le (T → Prop) := λ T P Q, ∀ x, P x → Q x.
-Instance: ∀ T, Equiv (T → Prop) := λ T P Q, ∀ x, P x = Q x.
-Instance: ∀ T, PartialOrder (_: Le (T→Prop)).
+Instance (*FIXME*) Setoid_instance_2: ∀ T `{Setoid T}, Setoid (P T).
+Proof.
+  constructor; repeat intro.
+  destruct x; auto.
+  destruct x, y; rewrite H1, <-(H0 y0); reflexivity.
+  destruct x, y, z; rewrite H2, (H0 y0), (H1 y0); reflexivity.
+Qed.
+Instance: ∀ T `{Setoid T}, PartialOrder (_: Le (P T)).
 Proof.
   constructor.
   * typeclasses eauto.
-  * intros ??? ???; split; intros ???; repeat hyp_apply.
+  * repeat intro; split; repeat intro; [rewrite <-(H1 x1) | rewrite (H1 x1)]; try reflexivity;
+    apply H2; [rewrite (H0 x1) | rewrite <-(H0 x1)]; try reflexivity; assumption.
   * constructor; repeat intro; repeat hyp_apply.
-  * repeat intro; split; hyp_apply.
+  * constructor; intro; [apply H0 | apply H1]; destruct x,y; [rewrite <-H2 | rewrite H2]; assumption.
 Qed.
-Definition sdD (n m: Object) := { f : m →  (n → Prop) | OrderPreserving f}.
-Program Let sdΔ' (n m: Object) := setoid.object (sdD n m) (sig_equiv _) _.
+
+Let PowerSet : setoid.Object → setoid.Object := λ x, setoid.object (P (setoid.T x)) _ _.
+Program Instance: functors.Fmap PowerSet := λ x y f p (b:y), ∃ a: x, (setoid.e y) (`f a) b ∧ p a.
 Next Obligation.
-  constructor.
-  * intro x; destruct x as [x[]].
-    apply sm_proper.
-  * intros x y Hxy ???; symmetry; apply Hxy; symmetry; assumption.
-  * intros ??? ?? ?.
-    destruct x as [x[]], y as [y[]], z as [z[]].
-    intros.
-    rewrite (H x0); [ apply (H0 x0) ;  assumption |  reflexivity ].
+  (* FIXME *) fold (@equiv _ (setoid.e y)).
+  repeat intro.
+  split; intros [a ?]; exists a; [ rewrite <-H | rewrite H ]; assumption.
 Qed.
+Next Obligation.
+  (* FIXME *) fold (@equiv _ (setoid.e y)).
+  constructor; try typeclasses eauto.
+  repeat intro.
+  split; intro a; destruct a as [a ?]; exists a;
+    [ rewrite <-H0, <-(H a) | rewrite H0, (H a) ]; try reflexivity; try assumption.
+Qed.
+Instance: Functor PowerSet _ := {}.
+Proof.
+  * constructor; try typeclasses eauto.
+    repeat intro.
+    split; intros [z ?]; exists z; [ rewrite <-H1, <-(H0 z) | rewrite H1, (H0 z) ];
+    try reflexivity; split; [rewrite <-(H z z (reflexivity _)) | | rewrite (H z z (reflexivity _)) | ]; apply H2.
+  * repeat intro. simpl.
+    split.
+    - intros [z ?].
+      destruct H1, x.
+      rewrite <-(H y0 _ (reflexivity _)), <-H0, <-H1.
+      assumption.
+    - intro; exists x0; split;
+      [reflexivity | rewrite (H x0 y0 H0); assumption ].
+  * repeat intro. simpl.
+    unfold compose.
+    split; intros [k ?].
+     - exists (`g k). rewrite <-H0. split; try apply H1.
+        exists k. split; try reflexivity.
+        rewrite <-(H _ _ (reflexivity k)). apply H1.
+     - destruct H1 as [? [l ?]].
+       exists l.
+       split. rewrite H0.
+       destruct H2, f. rewrite H2. assumption.
+       rewrite (H _ _ (reflexivity l)). apply H2.
+Qed.
+
+
+
+Definition sdD (n m: Object) := order.object m _ _ _ _ ⟶ order.object (P n) _ _ _ _.
+Let sdΔ' (n m: Object) := setoid.object (sdD n m) (sig_equiv _) _.
 Program Instance: ∀ n: Object, functors.Fmap (Arrows0:=dual.flipA) (sdΔ' n) := λ n v w X f, `f ∘ `X.
 Next Obligation.
   eapply (@compose_order_preserving).
@@ -224,18 +242,15 @@ Qed.
 Next Obligation.
   constructor; try typeclasses eauto.
   (* FIXME) *)
-  apply (setoid.setoid_proof (sdΔ' n v)).
-  apply (setoid.setoid_proof (sdΔ' n w)).
   intros ?? H ???.
   apply H; apply sm_proper; assumption.
 Qed.
-
 Instance: ∀ n: Object, Functor (sdΔ' n) _ := {}.
 Proof.
   * constructor; try typeclasses eauto.
-    repeat intro.
-    simpl.
-    hyp_apply; hyp_rewrite; hyp_apply.
+    intros [][]? [][]? ??? ???.
+    simpl; unfold compose; simpl.
+    hyp_apply; [hyp_rewrite; apply (H y) | assumption].
   * repeat intro.
     hyp_apply; assumption.
   * repeat intro.
@@ -286,7 +301,34 @@ Next Obligation.
   * rewrite R; assumption.
 Qed.
 Next Obligation.
-#
+constructor; try typeclasses eauto.
+* constructor; try typeclasses eauto.
+  intros ??? ? ??? ??? ?. simpl in *.
+  split; intros [h ?]; exists h;
+    pose proof (H h) as R1;
+    destruct y0 as [y0 ?];
+    pose proof (order_morphism_mor y0);
+      pose proof H0 x2 y1 H1 h as R2.
+  - rewrite <-R1, <-R2. assumption.
+  - rewrite R1, R2. assumption.
+* repeat intro.
+  simpl in *. unfold id.
+  split; intro.
+  - destruct H1 as [?[??]].
+   rewrite <-(H x1 y0 H0 x2).
+   clear H y0 H0.
+   Set Typeclasses Debug.
+   destruct x0.
+   pose proof (order_morphism_mor x0).
+   simpl.
+   erewrite (sm_proper (f:=x0) (x1) (x1)).
+   destruct (functor_morphism (sdΔ' a)).
+   pose proof (sm_proper (`x0 x1)).
+    simpl.
+    Check (x0 x1).
+    pose (order_morphism_mor (x0 x1)).
+    rewrite <- H1.
+
 Qed.
 
 End Delta.
