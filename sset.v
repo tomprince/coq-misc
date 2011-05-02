@@ -1,7 +1,7 @@
+Set Automatic Coercions Import.
 Require Import
    Morphisms RelationClasses Equivalence Setoid Arith
-   abstract_algebra util.
-Set Automatic Coercions Import.
+   abstract_algebra util canonical_names orders interfaces.orders.
 Require setoid.
 (* me *)
 
@@ -31,8 +31,11 @@ Coercion Build_Object: nat >-> Object.
 Definition D' (n:Object) :=  {x: nat | x ≤ n}.
 Coercion D': Object >-> Sortclass.
 
-Instance: ∀ n: nat, Order (Build_Object n) := λ _ x y, (`x) ≤ (`y).
-Instance: ∀ n: nat, @PartialOrder (Build_Object n) _ _.
+Instance: Equiv Object := λ n m, D n = D m.
+Existing Instance sig_equiv.
+Instance: ∀ n: nat, Le (Build_Object n) := λ _ x y, (`x) ≤ (`y).
+Instance: ∀ n: nat, Lt (Build_Object n) := λ _ x y, (`x) < (`y).
+Instance: ∀ n: nat, PartialOrder (A:=Build_Object n) (≤).
 Proof.
   constructor.
   typeclasses eauto.
@@ -51,10 +54,10 @@ Section ord.
   Global Instance HHH : Proper ((=) ==> (=)) f.
   Proof.
     intros a b Hab.
-    pose proof (poset_setoid: Setoid A).
+    pose proof (po_setoid: Setoid A).
     apply (antisymmetry (≤));
       apply order_preserving; auto;
-        eapply poset_proper; try apply Hab; try reflexivity.
+        eapply po_proper; try apply Hab; try reflexivity.
   Qed.
 End ord.
 
@@ -101,7 +104,7 @@ Proof. repeat intro; reflexivity. Qed.
 
 Global Instance: Category Object := {}.
 
-Definition Δ (n: Object) := functor.object (Arrows0:=dual.flipA) (homTo n) _ _.
+Definition Δ (n: Object) := functor.object (homTo n) _ _.
 
 Definition misses {A} `{Equiv B} x (f: A->B) := forall y, ~ f y = x.
 
@@ -137,7 +140,7 @@ Proof.
 Qed.
 
 Program Definition N' : F ⇛ (homTo c) := λ a, λ x: F a, ` x .
-Global Instance: NaturalTransformation (Arrows0:=dual.flipA) N'.
+Global Instance: NaturalTransformation N'.
 Proof.
   repeat intro; compute.
   apply comp_proper; reflexivity || assumption.
@@ -150,7 +153,7 @@ Context `{!LeftHereditary c P}.
 Context `{!LeftHereditary c Q}.
 Context (HPQ : ∀ x f, P x f → Q x f).
 Program Definition N : (F (P:=P)) ⇛ (F (P:=Q)) := λ a (x: F a), proj1_sig (P:=P a) x.
-Global Instance: NaturalTransformation (Arrows0:=dual.flipA) N.
+Global Instance: NaturalTransformation N.
 Proof.
   intros ???[][]?.
   simpl. 
@@ -189,11 +192,11 @@ Definition i (n: Object) (k: n) (m: Object) := functor.arrow (ΛΔ n k) (δΔ n)
 Definition i' (n: Object) (m: Object) := functor.arrow (δΔ n) (Δ n) N'.
 
 
-Instance: ∀ T, Order (T → Prop) := λ T P Q, ∀ x, P x → Q x.
+Existing Instance order_morphism_mor.
+Instance: ∀ T, Le (T → Prop) := λ T P Q, ∀ x, P x → Q x.
 Instance: ∀ T, Equiv (T → Prop) := λ T P Q, ∀ x, P x = Q x.
-Instance: ∀ T, PartialOrder (_: Order (T → Prop)).
+Instance: ∀ T, PartialOrder (_: Le (T→Prop)).
 Proof.
-  unfold Order_instance_1.
   constructor.
   * typeclasses eauto.
   * intros ??? ???; split; intros ???; repeat hyp_apply.
@@ -201,25 +204,93 @@ Proof.
   * repeat intro; split; hyp_apply.
 Qed.
 Definition sdD (n m: Object) := { f : m →  (n → Prop) | OrderPreserving f}.
-Program Let sdΔ (n m: Object) := setoid.object (sdD n m) (sig_equiv _) _.
+Program Let sdΔ' (n m: Object) := setoid.object (sdD n m) (sig_equiv _) _.
 Next Obligation.
-  unfold Setoid, equiv.
   constructor.
   * intro x; destruct x as [x[]].
-    simpl.
-    pose proof (order_morphism_mor x) as Hx.
-    apply (@sm_proper _ _ _ _ _  Hx).
+    apply sm_proper.
   * intros x y Hxy ???; symmetry; apply Hxy; symmetry; assumption.
   * intros ??? ?? ?.
     destruct x as [x[]], y as [y[]], z as [z[]].
-    pose proof (order_morphism_mor x) as Hx.
-    pose proof (order_morphism_mor y) as Hy.
-    pose proof (order_morphism_mor z) as Hz.
-    simpl in *.
     intros.
     rewrite (H x0); [ apply (H0 x0) ;  assumption |  reflexivity ].
 Qed.
+Program Instance: ∀ n: Object, functors.Fmap (Arrows0:=dual.flipA) (sdΔ' n) := λ n v w X f, `f ∘ `X.
+Next Obligation.
+  eapply (@compose_order_preserving).
+  destruct X; auto.
+  destruct f; auto.
+Qed.
+Next Obligation.
+  constructor; try typeclasses eauto.
+  (* FIXME) *)
+  apply (setoid.setoid_proof (sdΔ' n v)).
+  apply (setoid.setoid_proof (sdΔ' n w)).
+  intros ?? H ???.
+  apply H; apply sm_proper; assumption.
+Qed.
 
+Instance: ∀ n: Object, Functor (sdΔ' n) _ := {}.
+Proof.
+  * constructor; try typeclasses eauto.
+    repeat intro.
+    simpl.
+    hyp_apply; hyp_rewrite; hyp_apply.
+  * repeat intro.
+    hyp_apply; assumption.
+  * repeat intro.
+    hyp_apply; try assumption.
+    repeat intro.
+    simpl. unfold compose. simpl.
+    hyp_apply; try assumption.
+    do 2 apply sm_proper.
+    assumption.
+Qed.
+
+Definition sdΔ (n: Object) := functor.object (Arrows0:=dual.flipA) (sdΔ' n) _ _.
+
+(* FIXME: The term should be broken up. *)
+Program Definition sdΔ'' := functor.object (Arrows1:=functor.Arrow) sdΔ (λ n m (f: n⟶m), functor.arrow (sdΔ n) (sdΔ m) (λ (v: Object) (X: sdD n v), λ (v0:v) (y:m), ∃ x:n, `f x = y ∧ X v0 x) _) _.
+Next Obligation.
+  repeat (constructor; try typeclasses eauto).
+  * intros [x' [Hx ?]].
+    exists x'. destruct f, X. simpl in *.
+    split; try assumption.
+    rewrite (sm_proper (f:=x2) y x (symmetry H) x'); assumption.
+  * intros [x' [? ?]].
+    exists x'. destruct f, X. simpl in *.
+    split; try assumption.
+    rewrite (sm_proper (f:=x2) x y H x'); assumption.
+  * intros ???? [x' [??]].
+    exists x'.
+    destruct f, X; simpl in *.
+    split; try assumption.
+    apply (order_preserving x2 x y H x').
+    assumption.
+Qed.
+Next Obligation.
+  constructor; try typeclasses eauto.
+  eapply (setoid.setoid_proof (sdΔ' n v)).
+  eapply (setoid.setoid_proof (sdΔ' m v)).
+  intros ??? ??? ?; simpl in *.
+  pose (setoid.setoid_proof (sdΔ' n v)).
+  cut (∀ (x y: sdD n v) (_:x=y) x0 y0 (_:x0=y0), (∃ v0: n, `f v0 = x1 ∧ (`x x0 v0)) → (∃ v0: n, `f v0 = x1 ∧ (`y y0 v0))); [split; apply H1; assumption || symmetry; assumption|].
+  intros. destruct H3 as [h h']; exists h. destruct x2,y1; do 2 red in H1; simpl in *. rewrite <- (H1 _ _  H2 h). assumption.
+Qed.
+Next Obligation.
+  repeat intro. simpl in *.
+  split; intro; destruct f0; pose (order_morphism_mor x3);
+    destruct H1 as [h [h'? ]]; exists h; (split; [assumption|]);
+    pose proof H (x3 x1) (x3 y1) (sm_proper (f:=x3) x1 y1 H0) h as R.
+  * rewrite <-R; assumption.
+  * rewrite R; assumption.
+Qed.
+Next Obligation.
+#
+Qed.
+
+End Delta.
+(*
 Program Instance: ∀ n, Fmap (Arrows0:=flip (_:Arrows _)) (sdΔ n) := λ n v w f, exist _ (λ X: sdD n v, exist _ (λ x y, (` X (` f x) y)) _ ) _.
 Next Obligation.
   constructor.
@@ -320,3 +391,4 @@ Next Obligation.
   unfold sdD.
   simpl.
   destruct X0 as [X0 []].
+*)
