@@ -8,6 +8,10 @@ Require dual.
 
 Require Import extra_tactics.
 
+Hint Extern 4  => solve [repeat intro; simpl in *; hyp_apply].
+Hint Extern 10 => apply _.
+Hint Extern 4 => constructor.
+
 Ungereralizable Arguments Initial [X Arrows0 H].
 Ungereralizable Arguments InitialArrow [X Arrows0 H].
 Section terminality.
@@ -47,12 +51,12 @@ Class NullArrow x y := null_arrow: x ⟶ y.
 Class HasNullArrows `{∀ x y, NullArrow x y} :=
 { left_null : ∀ x y z (f:x⟶y), (null_arrow: y⟶z) ◎ f = null_arrow
 ; right_null : ∀ x y z (f:y⟶z), f ◎ (null_arrow: x⟶y) = null_arrow }.
-Context `{Null C (Arrows0:=Arrows0) H z}.
+Set Typeclasses Debug.
+Context `{Null (Arrows0:=Arrows0) C z}.
 Section x.
 Context (x y: C).
 Global Instance: NullArrow x y := initial_arrow y ◎ terminal_arrow x.
 End x.
-  Require Import AAC.
 Global Instance: HasNullArrows.
 Proof.
   constructor;
@@ -93,8 +97,7 @@ Section Limits.
     revert dependent c'; revert dependent c.
     unfold iso_arrows.
     cut (∀ `{Limit x} `{Limit y}, make_limit x y (limit_proj y) _ ◎ make_limit y x (limit_proj x) _ = cat_id)...
-    pose proof proj2 (limit_factors x x (limit_proj x) _) as Q.
-    setoid_rewrite Q...
+    setoid_rewrite (proj2 (limit_factors _ _ _ _))...
     + rewrite associativity.
       repeat rewrite limit_round_trip...
     + rewrite right_identity...
@@ -130,8 +133,7 @@ Section Equalizer.
     revert dependent c'; revert dependent c.
     unfold iso_arrows.
     cut (∀ `{Equalizer c} `{Equalizer c'}, make_equalizer c c' (equalizer_proj c') _ ◎ make_equalizer c' c (equalizer_proj c) _ = cat_id)...
-    pose proof proj2 (equalizer_factors c c (equalizer_proj c) _) as Q.
-    setoid_rewrite Q...
+    setoid_rewrite (proj2 (equalizer_factors c c (equalizer_proj c) _))...
     + rewrite associativity.
       repeat rewrite equalizer_round_trip...
     + rewrite right_identity...
@@ -167,9 +169,7 @@ Section equalizer_as_limit.
   + destruct a.
   + apply left_identity.
   Qed.
-  Instance: Limit (J:=I) c.
-  constructor.
-  typeclasses eauto.
+  Instance: Limit (J:=I) c := {}.
   intros *.
   pose (equalizer_factors f c c0 (ccomp X) _).
   split.
@@ -177,7 +177,6 @@ Section equalizer_as_limit.
     - apply i.
     - rewrite <- (ccompat X Y j).
       unfold limit_proj, ElimLimit_instance_0.
-      simpl.
       setoid_rewrite <- associativity.
       unfold make_limit, IntroLimit_instance_0.
       rewrite equalizer_round_trip; try typeclasses eauto.
@@ -212,8 +211,7 @@ Section Kernel.
     revert dependent k'; revert dependent k.
     unfold iso_arrows.
     cut (∀ `{Kernel k} `{Kernel k'}, make_kernel k k' (kernel_inj k') (kernel_compat _) ◎ make_kernel k' k (kernel_inj k) (kernel_compat _) = cat_id)...
-    pose proof proj2 (kernel_factors k k (kernel_inj k) (kernel_compat _)) as Q.
-    setoid_rewrite Q...
+    setoid_rewrite (proj2 (kernel_factors k k (kernel_inj k) (kernel_compat _)))...
     + rewrite associativity.
       repeat rewrite kernel_round_trip...
     + rewrite right_identity...
@@ -239,7 +237,7 @@ Context (j:J).
 Definition elim : limit → setoid.T (X j) := λ x, `x j.
 Global Instance: Proper ((=)==>(=)) elim.
 Proof. hnf; unfold elim; auto. Qed.
-Global Instance: Setoid_Morphism (elim).
+Global Instance: Setoid_Morphism (elim) := {}.
 End elim.
 Program Instance: ElimLimit (X:=X) l := elim.
 
@@ -256,14 +254,14 @@ Program Definition intro : setoid.T x → limit := λ a j, ` (x_j j) a.
 Next Obligation.
 intros j j' f; apply (cone j j' f a a); reflexivity.
 Qed.
-Let kk {A B}: forall (f: setoid.Arrows_instance_0 A B), Setoid_Morphism (`f) := @proj2_sig _ _.
-Coercion kk: setoid.Arrows_instance_0 >-> Setoid_Morphism.
+Let kk {A B}: forall (f: setoid.Arrow A B), Setoid_Morphism (`f) := @proj2_sig _ _.
+Coercion kk: setoid.Arrow >-> Setoid_Morphism.
 Instance: Proper ((=)==>(=)) intro.
 intros ??? j. simpl.
 apply sm_proper.
 auto.
 Qed.
-Global Instance: Setoid_Morphism intro.
+Global Instance: Setoid_Morphism intro := {}.
 End intro.
 Program Instance: IntroLimit (X:=X) l := intro.
 

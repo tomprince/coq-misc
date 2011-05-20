@@ -16,6 +16,8 @@ Set Inconsistent Universes.
 Require Import peano_naturals.
 Require Import theory.setoids.
 Require Import orders.maps.
+Require categories.order.
+Require functor.
 
 Hint Extern 4  => solve [repeat intro; simpl in *; hyp_apply].
 Hint Extern 10 => apply _.
@@ -28,7 +30,6 @@ Open Scope nat_scope.
 Instance: Equiv nat := eq.
 Program Instance: Equivalence (@eq nat).*)
 
-Require categories.order.
 Section induced_category.
 Context `{Category C} B (F: B → C).
 Instance InducedArrow: Arrows B := λ x y, F x ⟶ F y.
@@ -36,9 +37,12 @@ Global Instance: CatId B := λ x, cat_id : F x ⟶ F x.
 Global Instance: CatComp B := λ x y z, comp (F x) (F y) (F z).
 Global Instance: Category B.
 Proof. constructor; unfold "⟶", InducedArrow, comp, CatComp_instance_0, cat_id, CatId_instance_0; try typeclasses eauto. Qed.
+
+Global Instance: Fmap F := λ _ _,id.
+Global Program  Instance: Functor F _.
 End induced_category.
 
-Inductive Object : Set := {D :> nat}.
+Inductive Object : Set := {D'' :> nat}.
 Coercion Build_Object: nat >-> Object.
 Definition D' (n:Object) :=  {x: nat | x ≤ n}.
 Coercion D': Object >-> Sortclass.
@@ -58,9 +62,9 @@ Proof.
 Qed.
 End induced_order.
 
-Set Typeclasses Debug.
-Require categories.order.
-Instance: Arrows Object := InducedArrow _ (λ n, order.object (D' n)).
+Definition D n := order.object (D' n).
+
+Instance: Arrows Object := InducedArrow _ D.
 Typeclasses Transparent Arrows Arrow.
  
 Section ord.
@@ -68,19 +72,20 @@ Section ord.
   Global Instance HHH : Proper ((=) ==> (=)) f.
   Proof.
     intros a b Hab.
-    pose proof (po_setoid: Setoid A).
     apply (antisymmetry (≤));
       apply order_preserving; auto;
         eapply po_proper; try apply Hab; try reflexivity.
   Qed.
 End ord.
 
+Set Typeclasses Debug.
 Global Instance: CatComp Object := _.
 Global Instance: CatId Object := _.
 Global Instance: Category Object := _.
 Require categories.dual.
 
-Definition Δ (n: Object) := functor.object (homTo n) _ _.
+(* FIXME FIXME *)
+Definition Δ (n: Object) := functor.object (Arrows0:=dual.flipA) (homFrom (Arrows0:=@dual.flipA _ Arrows_instance_0) n)  _ _.
 
 Definition misses {A} `{Equiv B} x (f: A->B) := forall y, ~ f y = x.
 
@@ -96,31 +101,36 @@ Context `{Category C}.
 Context `{LH: !LeftHereditary c P}.
 (* CatComp0 is unfold due to a bug *)
 Definition F := (λ x, setoid.object (sig (P x))  _ _).
-Global Program Instance Fmap: Fmap (Arrows0:=dual.flipA) F
+Global Program Instance Fmap': Fmap (Arrows0:=dual.flipA) F
   := λ v w (X: w ⟶ v),  (λ f: {f: v ⟶ c | P v f}, (CatComp0 _ _ _ (`f) X) ↾ (left_hereditary (`f) X (proj2_sig f))).
 Next Obligation.
 constructor; try typeclasses eauto.
 intros ???. compute.
 apply comp_proper; reflexivity || assumption.
 Qed.
-Instance: ∀ a b, Setoid_Morphism (fmap F (v:=a) (w:=b)) := {}.
+
+Instance: ∀ a b, Setoid_Morphism (Fmap' a b) := {}. (*FIXME?*)
 Proof.
   repeat intro.
   simpl.
   apply comp_proper; reflexivity || assumption.
 Qed.
-Global Instance: Functor F Fmap := {}.
+Global Instance: Functor F Fmap' := {}.
 Proof.
   * intros ?[x p][y q] Hxy. do 4 red  in Hxy; simpl in Hxy. compute. rewrite Hxy. apply right_identity.
   * repeat intro. compute. do 4 red in H1; simpl in H1. rewrite H1. apply comp_assoc.
 Qed.
-
-Program Definition N' : F ⇛ (homTo c) := λ a, λ x: F a, ` x .
+Program Definition N' : F ⇛ (homTo c) := λ a (x: F a), proj1_sig (P:=P a) x.
 Global Instance: NaturalTransformation N'.
 Proof.
-  repeat intro; compute.
-  apply comp_proper; reflexivity || assumption.
+  intros ???[][]?.
+  simpl. 
+  unfold compose.
+  do 4 red in H1.
+  rewrite <-H1.
+  reflexivity.
 Qed.
+
 End hered_functor.
 
 Section hered_nat.
@@ -155,17 +165,15 @@ Proof.
   apply_simplified H.
 Qed.
 
-Check N.
 Let iFF (n: Object) (c:n) : ∀ m f, (FF n c m f) → (FFdD n m f).
 Proof. exists c. hyp_apply. Qed.
 
 (* (δΔ n) m ⟶ {η : Nat (F:=Δ n) m | ∃ k,  *)
-Require functor.
-Definition δΔ (n: Object) := functor.object (F (P:=FFdD n)) (Fmap) _.
-Definition ΛΔ (n: Object) (k: n) := functor.object (F (P:=FF n k)) Fmap _.
+Definition δΔ (n: Object) := functor.object (F (P:=FFdD n)) Fmap' _.
+Definition ΛΔ (n: Object) (k: n) := functor.object (F (P:=FF n k)) Fmap' _.
 
 Definition i (n: Object) (k: n) (m: Object) := functor.arrow (ΛΔ n k) (δΔ n) (N (iFF n k)).
-Definition i' (n: Object) (m: Object) := functor.arrow (δΔ n) (Δ n) N'.
+Definition i' (n: Object) (m: Object) := functor.arrow (δΔ n) (Δ n) N'. 
 
 Instance: ∀ `{Equiv T}, Equiv (T → Prop) := λ _ _, ext_equiv.
 Definition P (T: Type) `{Equiv T} := {f : T → Prop | Proper ((=)==>(=)) f}.
@@ -188,8 +196,8 @@ Proof.
   * constructor; intro; [apply H0 | apply H1]; destruct x,y; [rewrite <-H2 | rewrite H2]; assumption.
 Qed.
 
-Let PowerSet : setoid.Object → setoid.Object := λ x, setoid.object (P (setoid.T x)) _ _.
-Program Instance: functors.Fmap PowerSet := λ x y f p (b:y), ∃ a: x, (setoid.e y) (`f a) b ∧ p a.
+Let PowerSet : setoid.Object → order.Object := λ x, order.object (P (setoid.T x)).
+Program Instance: Fmap PowerSet := λ x y f p (b:y), ∃ a: x, (setoid.e y) (`f a) b ∧ p a.
 Next Obligation.
   (* FIXME *) fold (@equiv _ (setoid.e y)).
   repeat intro.
@@ -198,9 +206,12 @@ Qed.
 Next Obligation.
   (* FIXME *) fold (@equiv _ (setoid.e y)).
   constructor; try typeclasses eauto.
-  repeat intro.
-  split; intro a; destruct a as [a ?]; exists a;
-    [ rewrite <-H0, <-(H a) | rewrite H0, (H a) ]; try reflexivity; try assumption.
+  * constructor; try typeclasses eauto.
+    constructor; try typeclasses eauto.
+    split; intros [a ?]; exists a;
+      [ rewrite <-H0, <-(H a) | rewrite H0, (H a) ]; try reflexivity; try assumption.
+  * intros [??][??] ? ?.
+    intros [a [??]]; exists a; auto.
 Qed.
 Instance: Functor PowerSet _ := {}.
 Proof.
@@ -229,40 +240,54 @@ Proof.
        rewrite (H _ _ (reflexivity l)). apply H2.
 Qed.
 
-
-
-Definition sdD (n m: Object) := order.object m _ _ _ _ ⟶ order.object (P n) _ _ _ _.
-Let sdΔ' (n m: Object) := setoid.object (sdD n m) (sig_equiv _) _.
-Program Instance: ∀ n: Object, functors.Fmap (Arrows0:=dual.flipA) (sdΔ' n) := λ n v w X f, `f ∘ `X.
+Remove Hints jections.Inverse_instance_0 jections.Inverse_instance_1 : typeclass_instances.
+Definition BP (n: Object) := order.object (P n).
+Program Instance: Fmap BP := λ x y f, fmap PowerSet (v:=setoid.object (D' x) _ _) f.
 Next Obligation.
-  eapply (@compose_order_preserving).
-  destruct X; auto.
-  destruct f; auto.
-Qed.
-Next Obligation.
-  constructor; try typeclasses eauto.
-  (* FIXME) *)
-  intros ?? H ???.
-  apply H; apply sm_proper; assumption.
-Qed.
-Instance: ∀ n: Object, Functor (sdΔ' n) _ := {}.
-Proof.
-  * constructor; try typeclasses eauto.
-    intros [][]? [][]? ??? ???.
-    simpl; unfold compose; simpl.
-    hyp_apply; [hyp_rewrite; apply (H y) | assumption].
-  * repeat intro.
-    hyp_apply; assumption.
-  * repeat intro.
-    hyp_apply; try assumption.
-    repeat intro.
-    simpl. unfold compose. simpl.
-    hyp_apply; try assumption.
-    do 2 apply sm_proper.
-    assumption.
-Qed.
+  destruct f, X.
+  exists (` (fmap PowerSet (v:=setoid.object (D' x) _ _) (w:=setoid.object (D' y) _ _) (exist Setoid_Morphism x0 _))).
+  simpl in x0.
+  pose (compose x1 x0).
+  pose (fmap (v:=D x)(w:=D y) PowerSet f).
+red.
 
+Section F.
+Context {C D} (F: C→D) `{Functor C D F}.
+Instance Fmap'': Fmap F (Arrows0:=dual.flipA) (Arrows1:=dual.flipA) := λ v w, fmap F (v:=w).
+Instance: Functor F _ := _.
+End F.
+
+Definition sdΔ' n := compose (homTo (BP n)) D.
+Instance: ∀ n: Object, Fmap (Arrows0:=dual.flipA) (Arrows1:=setoid.Arrow) (sdΔ' n) := {}.
+Proof. eapply (comp_Fmap _ _ _ (g := D) (g' := Fmap'' _)). Defined.
+
+Instance: ∀ n: Object, Functor (sdΔ' n) (Fmap_instance_2 n) := _.
 Definition sdΔ (n: Object) := functor.object (Arrows0:=dual.flipA) (sdΔ' n) _ _.
+
+Goal ∀ v w (_:v⟶w), (homTo (BP v) ⇛ homTo (BP w)).
+intros.
+unfold homFrom.
+change (homFrom a (BP v) ⟶ homFrom a (BP w)).
+apply fmap. typeclasses eauto.
+apply fmap. apply Fmap''. typeclasses eauto.
+exact X.
+Check (r (BP w) (setoid.T (homFrom (BP v) (BP w)))).
+unfold sdΔ'.
+red. red.
+
+Program Instance: Fmap sdΔ := λ _ _ X, functor.arrow _ _ _ _.
+Next Obligation.
+Qed.
+intros ???.
+red. red. 
+Eval lazy [Inverse Nat] in proj2_sig (r (BP w) v).
+refine (functor.arrow (sdΔ v) (sdΔ w) (r X)).
+apply (proj2_sig (P:=NaturalTransformation)).
+
+
+unfold sdΔ. 
+
+Program Definition sdΔ'' := functor.object (Arrows1:=functor.Arrow) sdΔ _ _.
 
 (* FIXME: The term should be broken up. *)
 Program Definition sdΔ'' := functor.object (Arrows1:=functor.Arrow) sdΔ (λ n m (f: n⟶m), functor.arrow (sdΔ n) (sdΔ m) (λ (v: Object) (X: sdD n v), λ (v0:v) (y:m), ∃ x:n, `f x = y ∧ X v0 x) _) _.
@@ -288,7 +313,6 @@ Next Obligation.
   eapply (setoid.setoid_proof (sdΔ' n v)).
   eapply (setoid.setoid_proof (sdΔ' m v)).
   intros ??? ??? ?; simpl in *.
-  pose (setoid.setoid_proof (sdΔ' n v)).
   cut (∀ (x y: sdD n v) (_:x=y) x0 y0 (_:x0=y0), (∃ v0: n, `f v0 = x1 ∧ (`x x0 v0)) → (∃ v0: n, `f v0 = x1 ∧ (`y y0 v0))); [split; apply H1; assumption || symmetry; assumption|].
   intros. destruct H3 as [h h']; exists h. destruct x2,y1; do 2 red in H1; simpl in *. rewrite <- (H1 _ _  H2 h). assumption.
 Qed.
