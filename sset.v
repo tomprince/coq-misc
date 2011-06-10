@@ -2,13 +2,14 @@ Set Automatic Coercions Import.
 Require Import
    Morphisms RelationClasses Equivalence Setoid Arith
    abstract_algebra util canonical_names orders interfaces.orders.
-Require setoid.
+Require setoids.
 (* me *)
 
+Require Import workaround_tactics.
 Require Import interfaces.functors.
 Require Import extra_tactics.
 Require Import theory.categories.
-Require categories.functor.
+Require categories.functors.
 
 Require Import Program. 
 Require Import hom_functor.
@@ -17,11 +18,13 @@ Require Import peano_naturals.
 Require Import theory.setoids.
 Require Import orders.maps.
 Require categories.order.
-Require functor.
 
 Hint Extern 4  => solve [repeat intro; simpl in *; hyp_apply].
 Hint Extern 10 => apply _.
 Hint Extern 4 => constructor.
+
+Require Import theory.left_hereditary.
+Require Import theory.powerset.
 
 Section Delta.
 
@@ -30,42 +33,20 @@ Open Scope nat_scope.
 Instance: Equiv nat := eq.
 Program Instance: Equivalence (@eq nat).*)
 
-Section induced_category.
-Context `{Category C} B (F: B → C).
-Instance InducedArrow: Arrows B := λ x y, F x ⟶ F y.
-Global Instance: CatId B := λ x, cat_id : F x ⟶ F x.
-Global Instance: CatComp B := λ x y z, comp (F x) (F y) (F z).
-Global Instance: Category B.
-Proof. constructor; unfold "⟶", InducedArrow, comp, CatComp_instance_0, cat_id, CatId_instance_0; try typeclasses eauto. Qed.
-
-Global Instance: Fmap F := λ _ _,id.
-Global Program  Instance: Functor F _.
-End induced_category.
+Require Import categories.induced.
 
 Inductive Object : Set := {D'' :> nat}.
 Coercion Build_Object: nat >-> Object.
 Definition D' (n:Object) :=  {x: nat | x ≤ n}.
 Coercion D': Object >-> Sortclass.
 
-Existing Instances sig_equiv po_setoid.
-Section induced_order.
-Context O `{PartialOrder O} (P : O → Prop).
-Global Instance: Le (sig P) := λ x y, `x ≤ `y.
-Global Instance: PartialOrder (A:=sig P) (≤).
-Proof.
-  constructor.
-  typeclasses eauto.
-  intros [][]? [][]?; split; intros ?; do 2 red in H0, H1; simpl in H0, H1; compute; [rewrite <-H0, <-H1 | rewrite H0, H1]; apply H2.
-  constructor; auto.
-  intros [][][]; compute; transitivity x0; auto.
-  intros [][]; compute; intros. eapply (antisymmetry ); auto.
-Qed.
-End induced_order.
+Existing Instances po_setoid.
 
-Definition D n := order.object (D' n).
+Require Import order.induced.
 
-Instance: Arrows Object := InducedArrow _ D.
-Typeclasses Transparent Arrows Arrow.
+Instance Equiv_instance_1: Equiv (D' n) := fun n => sig_equiv _.
+Definition D n := @order.object (D' n) _ (induced.Le_instance_0 _ _ (@proj1_sig _ _ )) _ _.
+
  
 Section ord.
   Context `{PartialOrder A} `{PartialOrder B} `{!OrderPreserving  (f: A→B)}.
@@ -78,77 +59,22 @@ Section ord.
   Qed.
 End ord.
 
-Set Typeclasses Debug.
+Require categories.dual.
+(* FIXME FIXME *)
+Instance: Arrows Object := dual.flipA (A:=InducedArrow _ D).
+
+Global Instance Equiv_instance_2: forall x y:Object, Equiv (x⟶y) := _.
 Global Instance: CatComp Object := _.
 Global Instance: CatId Object := _.
-Global Instance: Category Object := _.
-Require categories.dual.
+Global Instance: Category Object := dual.cat.
 
-(* FIXME FIXME *)
-Definition Δ (n: Object) := functor.object (Arrows0:=dual.flipA) (homFrom (Arrows0:=@dual.flipA _ Arrows_instance_0) n)  _ _.
+Definition Δ (n: Object) := functors.object (homFrom n) _ _.
+Print Δ.
+
 
 Definition misses {A} `{Equiv B} x (f: A->B) := forall y, ~ f y = x.
 
-Section hered.
-Context `{Category C} (c : C).
-Class LeftHereditary (H: ∀ {x: C}, (x ⟶ c) → Prop) := left_hereditary : ∀ {x y:C} (f:x⟶c) (g:y⟶x), H f → H (f ◎ g).
-End hered.
-Implicit Arguments left_hereditary [[C] [Arrows0] [CatComp0] [c] [H] [LeftHereditary] [x] [y]].
-
-Require Import workaround_tactics.
-Section hered_functor.
-Context `{Category C}.
-Context `{LH: !LeftHereditary c P}.
-(* CatComp0 is unfold due to a bug *)
-Definition F := (λ x, setoid.object (sig (P x))  _ _).
-Global Program Instance Fmap': Fmap (Arrows0:=dual.flipA) F
-  := λ v w (X: w ⟶ v),  (λ f: {f: v ⟶ c | P v f}, (CatComp0 _ _ _ (`f) X) ↾ (left_hereditary (`f) X (proj2_sig f))).
-Next Obligation.
-constructor; try typeclasses eauto.
-intros ???. compute.
-apply comp_proper; reflexivity || assumption.
-Qed.
-
-Instance: ∀ a b, Setoid_Morphism (Fmap' a b) := {}. (*FIXME?*)
-Proof.
-  repeat intro.
-  simpl.
-  apply comp_proper; reflexivity || assumption.
-Qed.
-Global Instance: Functor F Fmap' := {}.
-Proof.
-  * intros ?[x p][y q] Hxy. do 4 red  in Hxy; simpl in Hxy. compute. rewrite Hxy. apply right_identity.
-  * repeat intro. compute. do 4 red in H1; simpl in H1. rewrite H1. apply comp_assoc.
-Qed.
-Program Definition N' : F ⇛ (homTo c) := λ a (x: F a), proj1_sig (P:=P a) x.
-Global Instance: NaturalTransformation N'.
-Proof.
-  intros ???[][]?.
-  simpl. 
-  unfold compose.
-  do 4 red in H1.
-  rewrite <-H1.
-  reflexivity.
-Qed.
-
-End hered_functor.
-
-Section hered_nat.
-Context `{Category C}.
-Context `{!LeftHereditary c P}.
-Context `{!LeftHereditary c Q}.
-Context (HPQ : ∀ x f, P x f → Q x f).
-Program Definition N : (F (P:=P)) ⇛ (F (P:=Q)) := λ a (x: F a), proj1_sig (P:=P a) x.
-Global Instance: NaturalTransformation N.
-Proof.
-  intros ???[][]?.
-  simpl. 
-  unfold compose.
-  apply comp_proper; reflexivity || assumption.
-Qed.
-End hered_nat.
-
-Let FF:  forall n:Object, ∀ (c:n)(m:Object) (f: m ⟶ n), _ := λ C c x f, misses c (` f).
+Let FF: ∀ n:Object, ∀ (c:n) (m:Object) (f: n ⟶ m), _ := λ C c x f, misses c (` f).
 Instance: ∀ (n:Object) (c:n), LeftHereditary n (FF n c).
 Proof.
   repeat intro.
@@ -156,7 +82,7 @@ Proof.
   apply_simplified H0.
 Qed.
 
-Let FFdD:  forall n:Object, ∀ (m:Object) (f: m ⟶ n), _ := λ n m f, ∃ k, misses k (` f).
+Let FFdD:  forall n:Object, ∀ (m:Object) (f: n ⟶ m), _ := λ n m f, ∃ k, misses k (` f).
 Instance: ∀ (n:Object), LeftHereditary n (FFdD n).
 Proof.
   intros ?????[x H].
@@ -169,87 +95,43 @@ Let iFF (n: Object) (c:n) : ∀ m f, (FF n c m f) → (FFdD n m f).
 Proof. exists c. hyp_apply. Qed.
 
 (* (δΔ n) m ⟶ {η : Nat (F:=Δ n) m | ∃ k,  *)
-Definition δΔ (n: Object) := functor.object (F (P:=FFdD n)) Fmap' _.
-Definition ΛΔ (n: Object) (k: n) := functor.object (F (P:=FF n k)) Fmap' _.
+Definition δΔ (n: Object) := functors.object (H:=dual.e) (F (P:=FFdD n)) Fmap' _.
+Definition ΛΔ (n: Object) (k: n) := functors.object (F (P:=FF n k)) Fmap' _.
 
-Definition i (n: Object) (k: n) (m: Object) := functor.arrow (ΛΔ n k) (δΔ n) (N (iFF n k)).
-Definition i' (n: Object) (m: Object) := functor.arrow (δΔ n) (Δ n) N'. 
-
-Instance: ∀ `{Equiv T}, Equiv (T → Prop) := λ _ _, ext_equiv.
-Definition P (T: Type) `{Equiv T} := {f : T → Prop | Proper ((=)==>(=)) f}.
-Instance: ∀ T `{Equiv T}, Le (P T) := λ T _ Q R, ∀ x, `Q x → `R x.
-
-Instance (*FIXME*) Setoid_instance_2: ∀ T `{Setoid T}, Setoid (P T).
-Proof.
-  constructor; repeat intro.
-  destruct x; auto.
-  destruct x, y; rewrite H1, <-(H0 y0); reflexivity.
-  destruct x, y, z; rewrite H2, (H0 y0), (H1 y0); reflexivity.
-Qed.
-Instance: ∀ T `{Setoid T}, PartialOrder (_: Le (P T)).
-Proof.
-  constructor.
-  * typeclasses eauto.
-  * repeat intro; split; repeat intro; [rewrite <-(H1 x1) | rewrite (H1 x1)]; try reflexivity;
-    apply H2; [rewrite (H0 x1) | rewrite <-(H0 x1)]; try reflexivity; assumption.
-  * constructor; repeat intro; repeat hyp_apply.
-  * constructor; intro; [apply H0 | apply H1]; destruct x,y; [rewrite <-H2 | rewrite H2]; assumption.
-Qed.
-
-Let PowerSet : setoid.Object → order.Object := λ x, order.object (P (setoid.T x)).
-Program Instance: Fmap PowerSet := λ x y f p (b:y), ∃ a: x, (setoid.e y) (`f a) b ∧ p a.
-Next Obligation.
-  (* FIXME *) fold (@equiv _ (setoid.e y)).
-  repeat intro.
-  split; intros [a ?]; exists a; [ rewrite <-H | rewrite H ]; assumption.
-Qed.
-Next Obligation.
-  (* FIXME *) fold (@equiv _ (setoid.e y)).
-  constructor; try typeclasses eauto.
-  * constructor; try typeclasses eauto.
-    constructor; try typeclasses eauto.
-    split; intros [a ?]; exists a;
-      [ rewrite <-H0, <-(H a) | rewrite H0, (H a) ]; try reflexivity; try assumption.
-  * intros [??][??] ? ?.
-    intros [a [??]]; exists a; auto.
-Qed.
-Instance: Functor PowerSet _ := {}.
-Proof.
-  * constructor; try typeclasses eauto.
-    repeat intro.
-    split; intros [z ?]; exists z; [ rewrite <-H1, <-(H0 z) | rewrite H1, (H0 z) ];
-    try reflexivity; split; [rewrite <-(H z z (reflexivity _)) | | rewrite (H z z (reflexivity _)) | ]; apply H2.
-  * repeat intro. simpl.
-    split.
-    - intros [z ?].
-      destruct H1, x.
-      rewrite <-(H y0 _ (reflexivity _)), <-H0, <-H1.
-      assumption.
-    - intro; exists x0; split;
-      [reflexivity | rewrite (H x0 y0 H0); assumption ].
-  * repeat intro. simpl.
-    unfold compose.
-    split; intros [k ?].
-     - exists (`g k). rewrite <-H0. split; try apply H1.
-        exists k. split; try reflexivity.
-        rewrite <-(H _ _ (reflexivity k)). apply H1.
-     - destruct H1 as [? [l ?]].
-       exists l.
-       split. rewrite H0.
-       destruct H2, f. rewrite H2. assumption.
-       rewrite (H _ _ (reflexivity l)). apply H2.
-Qed.
+Definition i (n: Object) (k: n) (m: Object) := functors.arrow (ΛΔ n k) (δΔ n) (N (iFF n k)).
+Definition i' (n: Object) (m: Object) := functors.arrow (δΔ n) (Δ n) N'.
 
 Remove Hints jections.Inverse_instance_0 jections.Inverse_instance_1 : typeclass_instances.
-Definition BP (n: Object) := order.object (P n).
-Program Instance: Fmap BP := λ x y f, fmap PowerSet (v:=setoid.object (D' x) _ _) f.
+
+Definition U (O: order.Object) : setoids.Object := setoids.object O _ _.
+Typeclasses eauto := 5.
+Program Instance: Fmap U := λ x y f, f.
 Next Obligation.
-  destruct f, X.
-  exists (` (fmap PowerSet (v:=setoid.object (D' x) _ _) (w:=setoid.object (D' y) _ _) (exist Setoid_Morphism x0 _))).
-  simpl in x0.
-  pose (compose x1 x0).
-  pose (fmap (v:=D x)(w:=D y) PowerSet f).
-red.
+  destruct f.
+  auto.
+Qed.
+
+Instance: Functor U _ := {}.
+Proof.
+  * constructor; try typeclasses eauto.
+    intros ???. assumption.
+  * intros ????. assumption.
+  * intros ??[] ?[] ???.
+    simpl. rewrite H.
+    reflexivity.
+Qed.
+
+Definition BP := PowerSet ∘ U ∘ D.
+Instance: Fmap (Arrows0:=InducedArrow _ D) BP := _.
+Proof.
+  eapply comp_Fmap.
+  eapply comp_Fmap.
+  typeclasses eauto.
+  typeclasses eauto.
+  typeclasses eauto.
+Defined.
+
+Instance: Functor BP _ := _.
 
 Section F.
 Context {C D} (F: C→D) `{Functor C D F}.

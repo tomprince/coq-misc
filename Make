@@ -1,5 +1,4 @@
-#-custom "scons -C math-classes/src $*.vo -j4" "" math-classes/src/%.vo
--R math-classes/src ""
+-R . ""
 cross.v
 join.v
 retract.v
@@ -10,3 +9,7 @@ sset.v
 simple_product.v
 interfaces_rmodule.v
 cat.v
+categories/induced.v
+order/induced.v
+theory/left_hereditary.v
+theory/powerset.v
