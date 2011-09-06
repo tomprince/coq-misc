@@ -1,14 +1,8 @@
 -R . ""
-cross.v
-join.v
-retract.v
-wfs.v
-modcat.v
-module.v
-sset.v
-simple_product.v
-interfaces_rmodule.v
+#wfs.v
+#modcat.v
 cat.v
+sset.v
 categories/induced.v
 order/induced.v
 theory/left_hereditary.v

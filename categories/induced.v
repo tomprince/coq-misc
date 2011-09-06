@@ -12,8 +12,8 @@ Global Instance InducedComp: CatComp B := λ x y z, comp (F x) (F y) (F z).
 Global Instance InducedCateogry: Category B := {}.
 
 Global Instance: Fmap F := λ _ _,id.
-Global Program Instance: Functor F _.
-Solve Obligations using reflexivity.
+Global Instance: Functor F _ := {}.
+Proof. reflexivity. reflexivity. Qed.
 End induced_category.
 
 Typeclasses Transparent InducedArrow InducedId InducedComp Equiv_instance_0.

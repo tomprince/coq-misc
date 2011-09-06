@@ -1,7 +1,7 @@
 Set Automatic Coercions Import.
 Require Import
   abstract_algebra orders functors.
-Require categories.setoids categories.order.
+Require categories.setoids categories.orders.
 
 
 Require Import extra_tactics.
@@ -28,7 +28,7 @@ Proof.
   * constructor; intro; [apply H0 | apply H1]; destruct x,y; simpl; [rewrite <-H2 | rewrite H2]; assumption.
 Qed.
 
-Definition PowerSet : setoids.Object → order.Object := λ x, order.object (P (setoids.T x)).
+Definition PowerSet : setoids.Object → orders.Object := λ x, orders.object (P (setoids.T x)).
 Program Instance: Fmap PowerSet := λ x y f p b, ∃ a: x, (`f a) = b ∧ p a.
 Next Obligation.
   constructor; try typeclasses eauto.
@@ -39,7 +39,6 @@ Next Obligation.
   constructor; try typeclasses eauto.
   * constructor; try typeclasses eauto.
     constructor; try typeclasses eauto.
-Typeclasses eauto := 4. (*FIXME*)
     split; intros [a ?]; exists a;
       [ rewrite <-H0, <-(H a) | rewrite H0, (H a) ]; try reflexivity; try assumption.
   * intros [??][??] ? ?.
@@ -74,7 +73,7 @@ Qed.
 
 Require Import dual.
 
-Program Instance: Fmap (Arrows0:=dual.flipA) (PowerSet: _^op → _) := λ x y f p b, ∃ a: x, `f b = a ∧ p a.
+Program Instance: Fmap (Arrows0:=dual.flipA) PowerSet := λ x y f p b, ∃ a: x, `f b = a ∧ p a.
 Next Obligation.
   constructor; try typeclasses eauto.
   intros ???.
@@ -99,7 +98,8 @@ Next Obligation.
     apply (H a) in H1.
     auto.
 Qed.
-Instance Functor_instance_1: Functor (PowerSet: _^op → _) _ := {}.
+
+Instance Functor_instance_1: Functor PowerSet _ := {}.
 Proof.
  * intros X ??? ???.
    destruct x.
