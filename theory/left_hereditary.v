@@ -2,7 +2,7 @@ Set Automatic Coercions Import.
 Require Import
    Morphisms RelationClasses Equivalence Setoid
    abstract_algebra util canonical_names
-   theory.categories hom_functor functors.
+   theory.categories hom_functor interfaces.functors.
 Require setoids dual.
 
 Section hered.

@@ -1,11 +1,10 @@
 Set Automatic Coercions Import.
 Require Import
-  abstract_algebra orders functors.
+  abstract_algebra interfaces.orders interfaces.functors.
 Require categories.setoids categories.orders.
 
 
 Require Import extra_tactics.
-
 Instance: ∀ `{Equiv T}, Equiv (T → Prop) := λ _ _, ext_equiv.
 Definition P (T: Type) `{Equiv T} := {f : T → Prop | Setoid_Morphism f}.
 Instance: ∀ T `{Equiv T}, Le (P T) := λ T _ Q R, ∀ x, `Q x → `R x.

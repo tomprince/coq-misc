@@ -316,3 +316,4 @@ Proof.
       apply Hb.
     + rewrite (H1 b) by reflexivity; assumption.
 Qed.
+End Delta.

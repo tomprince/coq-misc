@@ -1,6 +1,6 @@
 (*Require Import Morphisms.*)
 Require Import abstract_algebra.
-Require Import orders.
+Require Import interfaces.orders.
 
 Section induced_order.
 Context S O `{PartialOrder O} (P : S → O).

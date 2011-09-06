@@ -1,6 +1,6 @@
 Require Import
    Morphisms RelationClasses Equivalence Setoid Program
-   abstract_algebra categories interfaces.functors.
+   abstract_algebra theory.categories interfaces.functors.
 Require Import rings.
 Require dual.
 
@@ -51,7 +51,7 @@ Class NullArrow x y := null_arrow: x ⟶ y.
 Class HasNullArrows `{∀ x y, NullArrow x y} :=
 { left_null : ∀ x y z (f:x⟶y), (null_arrow: y⟶z) ◎ f = null_arrow
 ; right_null : ∀ x y z (f:y⟶z), f ◎ (null_arrow: x⟶y) = null_arrow }.
-Set Typeclasses Debug.
+
 Context `{Null (Arrows0:=Arrows0) C z}.
 Section x.
 Context (x y: C).
@@ -177,7 +177,7 @@ Section equalizer_as_limit.
     - apply i.
     - rewrite <- (ccompat X Y j).
       unfold limit_proj, ElimLimit_instance_0.
-      setoid_rewrite <- associativity.
+      rewrite <- associativity.
       unfold make_limit, IntroLimit_instance_0.
       rewrite equalizer_round_trip; try typeclasses eauto.
       reflexivity.
@@ -219,22 +219,22 @@ Section Kernel.
 End Kernel.
 
 
-Require categories.setoid.
+Require categories.setoids.
 
 Section SetoidLimits.
-Context `{Category J} X `{!Functor (X:J->setoid.Object) X_fmap}.
+Context `{Category J} X `{!Functor (X:J->setoids.Object) X_fmap}.
 
-Let product := ∀ j, setoid.T (X j).
+Let product := ∀ j, setoids.T (X j).
 Let sub := λ (x: product), ∀ j j' (f: j⟶j'), ` (fmap X f) (x j) = (x j').
 Definition limit := sig sub.
 Instance e: Equiv limit := λ x y: limit, ∀ j, `x j = `y j.
 Instance: Setoid limit.
 Proof. prove_equivalence. Qed.
-Definition l := setoid.object limit _ _.
+Definition l := setoids.object limit _ _.
 
 Section elim.
 Context (j:J).
-Definition elim : limit → setoid.T (X j) := λ x, `x j.
+Definition elim : limit → setoids.T (X j) := λ x, `x j.
 Global Instance: Proper ((=)==>(=)) elim.
 Proof. hnf; unfold elim; auto. Qed.
 Global Instance: Setoid_Morphism (elim) := {}.
@@ -249,15 +249,16 @@ rewrite s. apply H1.
 Qed.
 
 Section intro.
-Context (x: setoid.Object) (x_j : ∀ j : J, x ⟶ X j) `(cone:!Cone x x_j).
-Program Definition intro : setoid.T x → limit := λ a j, ` (x_j j) a.
+Context (x: setoids.Object) (x_j : ∀ j : J, x ⟶ X j) `(cone:!Cone x x_j).
+Program Definition intro : setoids.T x → limit := λ a j, ` (x_j j) a.
 Next Obligation.
 intros j j' f; apply (cone j j' f a a); reflexivity.
 Qed.
-Let kk {A B}: forall (f: setoid.Arrow A B), Setoid_Morphism (`f) := @proj2_sig _ _.
-Coercion kk: setoid.Arrow >-> Setoid_Morphism.
+Let kk {A B}: forall (f: setoids.Arrow A B), Setoid_Morphism (`f) := @proj2_sig _ _.
+Coercion kk: setoids.Arrow >-> Setoid_Morphism.
 Instance: Proper ((=)==>(=)) intro.
 intros ??? j. simpl.
+set (a := x_j j); destruct a.
 apply sm_proper.
 auto.
 Qed.
