@@ -1,6 +1,4 @@
--R . ""
-#wfs.v
-#modcat.v
+-R . "Hocat"
 cat.v
 sset.v
 categories/induced.v

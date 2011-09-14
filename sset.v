@@ -17,6 +17,7 @@ Require Import hom_functor.
 Require Import peano_naturals.
 Require Import theory.setoids.
 Require Import orders.maps.
+Require Import orders.orders.
 Require categories.orders.
 
 Hint Extern 4  => solve [repeat intro; simpl in *; hyp_apply].
@@ -39,18 +40,14 @@ Existing Instances po_setoid.
 Require Import order.induced.
 
 Instance Equiv_instance_1: Equiv (D' n) := fun n => sig_equiv _.
-Definition D n := @orders.object (D' n) _ (induced.Le_instance_0 _ _ (@proj1_sig _ _ )) _ _.
+Definition D n := @orders.object (D' n) _ (induced.induced_le _ _ (@proj1_sig _ _ )) _ _.
 
- 
+Hint Extern 3 (@equiv _ ?Ae _ _) => apply (antisymmetry (Ae:=Ae) _).
 Section ord.
   Context `{PartialOrder A} `{PartialOrder B} `{!OrderPreserving  (f: A→B)}.
   Global Instance HHH : Proper ((=) ==> (=)) f.
-  Proof.
-    intros a b Hab.
-    apply (antisymmetry (≤));
-      apply order_preserving; auto;
-        eapply po_proper; try apply Hab; try reflexivity.
-  Qed.
+Hint Unfold Proper respectful.
+  Proof. eauto 8. Qed.
 End ord.
 
 Require categories.dual.
@@ -85,8 +82,7 @@ Proof.
   apply_simplified H.
 Qed.
 
-Let iFF (n: Object) (c:n) : ∀ m f, (FF n c m f) → (FFdD n m f).
-Proof. exists c. hyp_apply. Qed.
+Program Let iFF (n: Object) (c:n) : ∀ m f, (FF n c m f) → (FFdD n m f) := λ _ _ _, ex_intro _ c _.
 
 (* (δΔ n) m ⟶ {η : Nat (F:=Δ n) m | ∃ k,  *)
 Definition δΔ (n: Object) := functors.object (F (P:=FFdD n)).
@@ -119,10 +115,9 @@ Instance: ∀ n: Object, Fmap (Arrows0:=dual.flipA) (sdΔ' n) := _.
 Instance: ∀ n: Object, Functor (sdΔ' n) (Fmap_instance_1 n) := _.
 Definition sdΔ (n: Object) := functors.object (sdΔ' n).
 
-Program Definition x: ∀ v w (_:v⟶w), (sdΔ' v ⇛ sdΔ' w) := λ v w f z s k, _.
+Program Definition x: ∀ v w (_:v⟶w), (sdΔ' v ⇛ sdΔ' w) := λ v w f z s k, `s _.
 Next Obligation. (* FIXME: Give this as a term *)
-apply (` s).
-pose (fmap BP (v:=w) (w:=v) f).
+pose (fmap BP (v:=w) (w:=v) f : BP w ⟶ BP v).
 exact (` a k).
 Defined.
 Next Obligation.
@@ -135,14 +130,13 @@ Next Obligation.
     set (fmap BP (v:=w) (w:=v) f).
     destruct a.
     simpl.
-    rewrite H.
+    hyp_rewrite.
     reflexivity.
   * intros.
-    destruct s.
-    apply order_preserving; try assumption.
+    apply order_preserving; trivial.
     intros ?[?[??]].
     simpl in *.
-    exists x2.
+    eexists.
     hyp_rewrite.
     intuition.
 Qed.
