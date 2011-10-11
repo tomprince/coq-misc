@@ -3,33 +3,39 @@ Require Import
   abstract_algebra interfaces.orders interfaces.functors.
 Require categories.setoids categories.orders.
 Require Import theory.setoids.
+Require Import orders.orders.
 
 Ltac find_ext_equiv :=  match goal with [ |- @equiv _ ?e (?f ?x) (?g ?y) ] => let x:=fresh "He" in assert (He: @equiv _ (ext_equiv (H0:=e)) f g); [|apply (He _ _)] end.
 Hint Extern 1 ((?f ?x) = (?g ?y)) => find_ext_equiv.
+Hint Extern 1 ((?f ?x) = (?g ?y)) => find_ext_equiv: typeclass_instances.
 Ltac simpl_sig_equiv_hyp := repeat match goal with [ H : (@equiv _ (sig_equiv (H:=?e) ?P) ?x ?y) |- @equiv _ ?e (` _) (` _) ] => change (@equiv _ e (`x) (`y)) in H end.
 Hint Extern 1 (` ?x = ` ?y) => simpl_sig_equiv_hyp.
+Hint Extern 1 (` ?x = ` ?y) => simpl_sig_equiv_hyp: typeclass_instances.
 
-Hint Extern 0 => unfold sig_equiv, equiv, ext_equiv.
-Instance ext_Setoid: ∀ `{Setoid A} `{Setoid B}, Setoid (sig (Setoid_Morphism (A:=A) (B:=B))) := {}.
+Local Hint Extern 0 => unfold sig_equiv, equiv, ext_equiv.
+Instance ext_Setoid `{Setoid A} `{Setoid B}: Setoid (sig (Setoid_Morphism (A:=A) (B:=B))) := _.
 Proof. constructor; auto. Qed.
 
-Instance ext_le: ∀ A `{Le B}, Le (A → B) := λ _ _ _ f g, ∀ x, f x ≤ g x.
-Instance sig_le `{Le A} (P : A → Prop) : Le {x | P x} := λ x y, `x ≤ `y.
+Instance ext_le A B `{Le B}: Le (A → B) := pointwise_relation A (≤).
+Require Import order.induced.
+Instance sig_le `{Le A} (P : A → Prop) : Le {x | P x} := induced_le _ _ (@proj1_sig _ _).
 
-Require Import orders.orders.
 Instance: ∀ `{Setoid A} `{PartialOrder B}, PartialOrder (sig_le Setoid_Morphism) := {}.
 Proof.
   - pose (po_setoid: Setoid B); apply ext_Setoid.
-  - unfold le, sig_le, le, ext_le;
-    unfold equiv, sig_equiv, equiv, ext_equiv, respectful in *;
-    repeat intro;
+  Typeclasses Transparent ext_le.
+  - unfold le, sig_le, le, induced_le, ext_le, pointwise_relation;
+    unfold equiv, sig_equiv, equiv, ext_equiv, respectful in *.
+    pose (po_setoid: Setoid B);
+    repeat intro.
     split; intros;
-    apply (po_proper _ _ (H1 _ _ (reflexivity _)) _ _ (H2 _ _ (reflexivity _))); auto.
-  - unfold le, sig_le, le, ext_le.
+    intro;
+    now apply (po_proper _ _ (H1 _ _ (reflexivity _)) _ _ (H2 _ _ (reflexivity _))).
+  - unfold le, sig_le, induced_le, le, ext_le, pointwise_relation.
     unfold equiv, sig_equiv, equiv, ext_equiv, respectful in *.
     constructor; auto.
     repeat intro.
-    specialize H1 with x0; specialize H2 with x0.
+    specialize H1 with a; specialize H2 with a.
     auto.
   - repeat intro.
     apply po_antisym.
@@ -37,11 +43,15 @@ Proof.
     * transitivity (` y x0); eauto.
 Qed.
 
-Definition power_set_equiv': ∀ `{Equiv T}, Equiv (T → Prop) := λ _ _, ext_equiv.
+Definition power_set_equiv' `{Equiv T}: Equiv (T → Prop) := ext_equiv.
 Hint Extern 1 (Equiv (_ → Prop)) => apply power_set_equiv' : typeclass_instances.
-Instance power_set_le': ∀ T `{Equiv T}, Le (T → Prop) := λ T _ Q R, ∀ x, Q x → R x.
+Instance power_set_le' `{Equiv T}: Le (T → Prop) := λ Q R, ∀ x, Q x → R x.
 Hint Extern 1 (Le (_ → Prop)) => apply power_set_le' : typeclass_instances.
 
+Instance power_set_joint' `{Equiv T}: Meet (T → Prop) := λ p q, λ t, p t ∧ q t.
+Instance power_set_meet' `{Equiv T}: Meet (T → Prop) := λ p q, λ t, p t ∨ q t.
+Instance power_set_top' T: Top (T → Prop) := λ t:T, True.
+Instance power_set_bottom' T: Top (T → Prop) := λ t:T, False.
 
 Definition P (T: Type) `{Equiv T} := {f : T → Prop | Setoid_Morphism f}.
 
@@ -52,6 +62,29 @@ Definition power_set_equiv: ∀ T `{Equiv T}, Equiv (P T) := λ _ _, sig_equiv _
 Hint Extern 0 (Equiv (P _)) => apply power_set_equiv : typeclass_instances.
 Typeclasses Transparent P.
 Instance: ∀ T `{Setoid T}, Setoid (P T) := λ _ _ _, ext_Setoid.
+
+Program Instance power_set_meet `{Setoid T}: Meet (P T) := λ p q, λ t, p t ∧ q t.
+Next Obligation.
+  constructor; try typeclasses eauto.
+  repeat intro.
+  rewrite !(sm_proper _ _ H0). firstorder.
+Qed.
+Program Instance power_set_join `{Setoid T}: Meet (P T) := λ p q, λ t, p t ∨ q t.
+Next Obligation.
+  constructor; try typeclasses eauto.
+  repeat intro.
+  rewrite !(sm_proper _ _ H0). firstorder.
+Qed.
+Program Instance power_set_top `{Setoid T}: Top (P T) := λ t:T, True.
+Next Obligation.
+  constructor; try typeclasses eauto.
+  hnf; reflexivity.
+Qed.
+Program Instance power_set_bottom `{Setoid T}: Top (P T) := λ t:T, False.
+Next Obligation.
+  constructor; try typeclasses eauto.
+  hnf; reflexivity.
+Qed.
 
 Instance: ∀ T `{Setoid T}, PartialOrder (_: Le (P T)).
 Proof.
@@ -66,9 +99,21 @@ Program Instance: Fmap PowerSet := λ x y f p b, ∃ a: x, (`f a) = b ∧ p a.
 Next Obligation.
   constructor; try typeclasses eauto.
   repeat intro.
-  split; intros ?; eexists;  [ rewrite <-H | rewrite H ].
-  Check match H0 as H0 return match H0 return Prop with ex_intro x P' => _ x end  with ex_intro x P => P end.
-  apply H0.
+  split; intros [a Ha]; exists a;  [ rewrite <-H | rewrite H ]; apply Ha.
+Qed.
+Next Obligation.
+  constructor; try typeclasses eauto.
+  - constructor; try typeclasses eauto.
+    constructor; try typeclasses eauto.
+    repeat intro.
+    split; intros [a Ha]; exists a; [symmetry in H | symmetry in H0];
+    rewrite (H a a (reflexivity _)); firstorder.
+  - intros. intros ? [a Ha].
+    exists a.
+    firstorder.
+Qed.
+
+(*
 Definition t A (P: A → Prop) (x : ex P) : match x return Prop with ex_intro x' P' => P x' end
 :=  match x with ex_intro x' P' => P' end.
 destruct x.
@@ -85,6 +130,7 @@ Next Obligation.
   * intros [??][??] ? ?.
     intros [a [??]]; exists a; auto.
 Qed.
+*)
 Instance: Functor PowerSet _ := {}.
 Proof.
   * constructor; try typeclasses eauto.
@@ -95,7 +141,8 @@ Proof.
     split.
     - intros [z ?].
       destruct H1, x.
-      rewrite <-(H y0 _ (reflexivity _)), <-H0, <-H1.
+      unfold id.
+      rewrite <-(H y0 _ (reflexivity _)). simpl. rewrite <-H0, <-H1.
       assumption.
     - intro; exists x0; split;
       [reflexivity | rewrite (H x0 y0 H0); assumption ].
@@ -147,6 +194,7 @@ Proof.
    split.
    - intros [a [??]].
      rewrite <-(H _ _ (reflexivity _)).
+     simpl.
      rewrite <-H0, <-H1.
      assumption.
    - intro.
@@ -158,7 +206,7 @@ Proof.
    simpl. split.
    - intros [a [??]].
      exists (`g a).
-     hyp_rewrite.
+     rewrite H1.
      intuition.
      exists a.
      intuition.
@@ -167,7 +215,7 @@ Proof.
      exists b.
      unfold compose.
      destruct f, g.
-     repeat hyp_rewrite.
+     rewrite H2, H1.
      rewrite (H _ _ (reflexivity _)).
      intuition.
 Qed.

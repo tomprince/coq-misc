@@ -11,7 +11,7 @@ Require Import extra_tactics.
 Require Import theory.categories.
 Require categories.functors.
 
-Require Import Program. 
+Require Import Program.
 Set Inconsistent Universes.
 Require Import hom_functor.
 Require Import peano_naturals.
@@ -38,9 +38,8 @@ Coercion D': Object >-> Sortclass.
 Existing Instances po_setoid.
 
 Require Import order.induced.
-
-Instance Equiv_instance_1: Equiv (D' n) := fun n => sig_equiv _.
-Definition D n := @orders.object (D' n) _ (induced.induced_le _ _ (@proj1_sig _ _ )) _ _.
+Hint Extern 4 (Equiv (D' _)) => apply (induced.induced_equiv _ _ (@proj1_sig _ _)) : typeclass_instances.
+Definition D n := @orders.object (D' n) (induced_equiv _ _ (@proj1_sig _ _)) (induced.induced_le (D' n) _ (@proj1_sig _ _ )) _ _.
 
 Hint Extern 3 (@equiv _ ?Ae _ _) => apply (antisymmetry (Ae:=Ae) _).
 Section ord.
@@ -159,18 +158,18 @@ Proof.
   destruct x1, y0; do 7 red in H; simpl in *.
   unfold compose.
   red in H0.
-  set (fmap D f0).
-  destruct a.
-  simpl.
-  rewrite (H _); [| reflexivity].
-  destruct o1 as [[]].
-  apply sm_proper.
-  destruct o0 as [[]].
+  set (fm := fmap D f0).
+  pose proof (_: OrderPreserving (`fm)).
+  pose proof (order_morphism_mor (`fm)).
+  rewrite (H _);  [| reflexivity].
+  apply (sm_proper _).
+  pose proof (_: OrderPreserving (x3)).
+  pose proof (order_morphism_mor (x3)).
   apply sm_proper.
   do 3 red; simpl.
   split; intros [a [Ha Ha']]; exists a;
-    [ rewrite (H0 a _ eq_refl) in Ha'; rewrite H1 in Ha
-    | rewrite <- (H0 a _ eq_refl) in Ha'; rewrite <- H1 in Ha]; auto.
+    [ rewrite (H0 a _ eq_refl) in Ha'; rewrite H5 in Ha
+    | rewrite <- (H0 a _ eq_refl) in Ha'; rewrite <- H5 in Ha]; auto.
 Qed.
 
 Program Instance: Fmap sdΔ := λ v w f, functors.arrow (sdΔ v) (sdΔ w) (x v w f) _.
