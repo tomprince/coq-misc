@@ -1,3 +1,4 @@
+Require Import Utf8.
 Require Import
   abstract_algebra.
 Require Import theory.setoids.
@@ -25,62 +26,75 @@ Delimit Scope functor_signature_scope with functor_signature.
 
 Inductive FunctorSignature :=
   | category_signature C `{Arrows C} `{ArrowsEquiv C} `{!CatId C, !CatComp C}
-  | functor_signature (source target: FunctorSignature)
-  | cofunctor_signature (source target: FunctorSignature).
+  |   functor_signature C `{Arrows C} `{ArrowsEquiv C} `{!CatId C, !CatComp C} (target: FunctorSignature)
+  | cofunctor_signature C `{Arrows C} `{ArrowsEquiv C} `{!CatId C, !CatComp C} (target: FunctorSignature).
 Bind Scope functor_signature_scope with FunctorSignature.
 
 Notation "[| C |]" := (category_signature C) : functor_signature_scope.
-Notation "C ++> D" :=
-  (functor_signature (C%functor_signature) (D%functor_signature))
+Notation "[| C |] ++> D" :=
+  (functor_signature C (D%functor_signature))
   (right associativity, at level 55) : functor_signature_scope.
-Notation "C --> D" :=
-  (cofunctor_signature (C%functor_signature) (D%functor_signature))
+Notation "[| C |] --> D" :=
+  (cofunctor_signature C (D%functor_signature))
   (right associativity, at level 55) : functor_signature_scope.
 
 Fixpoint make_ob_sig (sig: FunctorSignature) :=
   match sig with
     | category_signature C _ _ _ _ => C
-    | functor_signature C D => make_ob_sig C → make_ob_sig D
-    | cofunctor_signature C D => make_ob_sig C → make_ob_sig D
+    | functor_signature C _ _ _ _ D => C → make_ob_sig D
+    | cofunctor_signature C _ _ _ _ D => C → make_ob_sig D
   end.
 
 Coercion make_ob_sig: FunctorSignature >-> Sortclass.
 
 Fixpoint make_arrow_sig (sig: FunctorSignature) : Arrows (sig) :=
   match sig as sig return Arrows (sig) with
-    | category_signature C A _ _ _ => A
-    | functor_signature C D => λ F G, ∀ X Y: C, (X ⟶ Y) → ((F X) ⟶ (G Y))
-    | cofunctor_signature C D => λ F G, ∀ X Y: C, (Y ⟶ X) → ((F X) ⟶ (G Y))
+    | category_signature C A _ _ _ => @Arrow C A
+    | functor_signature C A _ _ _ D => λ F G, ∀ X Y: C, (X ⟶ Y) → ((F X) ⟶ (G Y))
+    | cofunctor_signature C A _ _ _ DD => λ F G, ∀ X Y: C, (Y ⟶ X) → ((F X) ⟶ (G Y))
   end.
 
 Existing Instance make_arrow_sig.
 
 Class M_Fmap (sig: FunctorSignature) (F: sig) : Type := m_fmap: F ⟶ F.
+(* This means that given the signature [|C|], and an element of the signature F (just an object)
+   an arrow from F --> F is just an endomorphism of that object. *)
 Implicit Arguments m_fmap [[sig][M_Fmap]].
 
 Fixpoint preserves_id_statement (sig: FunctorSignature) : ∀ F {fmap: M_Fmap sig F}, Prop :=
   match sig as sig return ∀ (F: sig) (fmap: M_Fmap sig F), Prop with
     | category_signature C _ e _ _ =>
        λ F fmap, (@equiv _ (e _ _)) fmap cat_id
-    | functor_signature C D => λ F fmap, ∀ (X: C) f,
-        preserves_id_statement C X f → preserves_id_statement D (F X) (fmap X X f)
-
-    | cofunctor_signature C D => λ F fmap, ∀ (X: C) f,
-        preserves_id_statement C X f → preserves_id_statement D (F X) (fmap X X f)
+    | functor_signature C A e _ _ D => λ F fmap, ∀ (X: C) f,
+        (@equiv _ (e _ _)) f cat_id → preserves_id_statement D (F X) (fmap X X f)
+    | cofunctor_signature C _ e _ _ D => λ F fmap, ∀ (X: C) f,
+        (@equiv _ (e _ _)) f cat_id → preserves_id_statement D (F X) (fmap X X f)
   end.
 Implicit Arguments preserves_id_statement [[fmap]].
 
 Class PreservesId (sig: FunctorSignature) (F:sig) `{fmap: !M_Fmap sig F} := preserves_id : preserves_id_statement sig F.
 
-Fixpoint preserves_comp_hetero_statement (sig: FunctorSignature) : ∀ {F G H} alpha beta gamma, Prop :=
+Obligation Tactic := idtac.
+Program Fixpoint preserves_comp_hetero_statement (sig: FunctorSignature) : ∀ {F G H: sig} (alpha: F⟶H) (beta: G⟶H) (gamma: F⟶G), Prop :=
   match sig as sig return ∀ (F G H: sig) (alpha: F ⟶ H) (beta: G ⟶ H) (gamma: F ⟶ G), Prop with
-    | category_signature C _ e _ cat_comp =>
-       λ F G H alpha beta gamma, (@equiv _ (e _ _)) alpha (@comp _ _ cat_comp _ _ _ beta gamma)
-    | functor_signature C D => λ F G H alpha beta gamma, ∀ X Y Z (f: X ⟶ Z) (g: Y ⟶ Z) (h: X ⟶ Y),
-        preserves_comp_hetero_statement C X Y Z f g h → preserves_comp_hetero_statement D _ _ _ (alpha _ _ f) (beta _ _ g) (gamma _ _ h)
-    | cofunctor_signature C D => λ F G H alpha beta gamma, ∀ X Y Z (f: Z ⟶ X) (g: Y ⟶ X) (h: Z ⟶ Y),
-        preserves_comp_hetero_statement C Z Y X f g h → preserves_comp_hetero_statement D _ _ _ (alpha _ _ f) (beta _ _ h) (gamma _ _ g)
+    | category_signature C A e id cat_comp => λ (F G H: C) alpha beta gamma,
+        alpha = (comp F G H beta gamma)
+    |   (functor_signature C A e _ _ D)  => λ (F G H: (alpha: @Arrow sig _ F H) beta gamma, ∀ (X Y Z: C) (f: X ⟶ Z) (g: Y ⟶ Z) (h: X ⟶ Y),
+          f = (comp X Y Z g h) → preserves_comp_hetero_statement D (F X)(G Y)(H Z) (alpha X) _ _
+    | cofunctor_signature C A e _ _ D => λ F G H alpha beta gamma, ∀ (X Y Z: C) (f: X ⟶ Z) (g: Y ⟶ Z) (h: X ⟶ Y), True
+  end.
+Next Obligation. intros; apply (alpha _ _ f). Defined.
+Next Obligation. intros; apply (beta _ _ g). Defined.
+Next Obligation. intros; apply (gamma _ _ h). Defined.
+Print preserves_comp_hetero_statement.
+Print preserves_comp_hetero_statement_obligation_1.
+  simpl in *.
+  apply alpha.
 
+        (@equiv _ (e _ _)) f (comp X Y Z g  h) → preserves_comp_hetero_statement D (F X) (G Y) (H Z) (alpha _ _ f) (beta _ _ g) (gamma _ _ h)
+       end.
+    | cofunctor_signature C _ _ _ _ D => λ F G H alpha beta gamma, ∀ X Y Z (f: Z ⟶ X) (g: Y ⟶ X) (h: Z ⟶ Y),
+        preserves_comp_hetero_statement C Z Y X f g h → preserves_comp_hetero_statement D _ _ _ (alpha _ _ f) (beta _ _ h) (gamma _ _ g)
   end.
 Implicit Arguments preserves_comp_hetero_statement [[F][G][H]].
 
@@ -104,6 +118,10 @@ Eval compute in (preserves_id_statement ([|C|] --> [|D|] ++> [|E|])).
 
 Eval compute in (preserves_comp_statement ([|C|] ++> [|D|]))%functor_signature.
 Eval compute in (preserves_comp_statement ([|C|] --> [|D|] ++> [|E|])).
+
+Eval compute in (M_Fmap (([|C|] ++> [|D|]) ++> [|E|])).
+Eval compute in (preserves_id_statement (([|C|] ++> [|D|]) ++> [|E|])).
+Eval compute in (preserves_comp_statement (([|C|] ++> [|D|]) ++> [|E|])).
 
 End Statement_tests.
 
@@ -179,8 +197,7 @@ Section x.
 
   Context {c: C}.
   Global Instance: M_Fmap (D++>E) (F c) := F' c c _.
-  Proof.
-    red.
+  Abort.
   Global Instance: M_Functor ([|D|]++>[|E|]) (F c) _ := {}.
   Proof.
     * repeat intro.
