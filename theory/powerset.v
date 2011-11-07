@@ -67,13 +67,17 @@ Program Instance power_set_meet `{Setoid T}: Meet (P T) := λ p q, λ t, p t ∧
 Next Obligation.
   constructor; try typeclasses eauto.
   repeat intro.
-  rewrite !(sm_proper _ _ H0). firstorder.
+  rewrite (sm_proper (f:=`p) x y H0).
+  rewrite (sm_proper (f:=`q) x y H0).
+  firstorder.
 Qed.
 Program Instance power_set_join `{Setoid T}: Meet (P T) := λ p q, λ t, p t ∨ q t.
 Next Obligation.
   constructor; try typeclasses eauto.
   repeat intro.
-  rewrite !(sm_proper _ _ H0). firstorder.
+  rewrite (sm_proper (f:=`p) x y H0).
+  rewrite (sm_proper (f:=`q) x y H0).
+  firstorder.
 Qed.
 Program Instance power_set_top `{Setoid T}: Top (P T) := λ t:T, True.
 Next Obligation.

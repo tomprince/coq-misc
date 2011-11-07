@@ -236,22 +236,6 @@ Section K.
 Let K := λ X v w (f: w⟶v), (r (sdΔ'' v) (fmap sdΔ f)) X.
 Obligation Tactic := idtac.
 Global Program Instance: Fmap (Arrows0:=dual.flipA) (Ex X) := λ X v w f, exist Setoid_Morphism (K X v w f) _.
-Next Obligation.
-  intros.
-  constructor.
-  - typeclasses eauto.
-  - typeclasses eauto.
-  - repeat intro.
-    apply (H x1).
-    repeat intro.
-    apply H0.
-    split; simpl;
-      intros [a [Ha Ha']]; exists a;
-        [ rewrite (H1 a a) in Ha' by reflexivity; rewrite Ha
-          | rewrite <- (H1 a a) in Ha' by reflexivity; rewrite Ha, H2 ];
-        intuition.
-Qed.
-End K.
 
 Instance: Functor (Ex X) _ := {}.
 Proof.
@@ -309,4 +293,4 @@ Proof.
       apply Hb.
     + rewrite (H1 b) by reflexivity; assumption.
 Qed.
-End Delta.
+End K.
